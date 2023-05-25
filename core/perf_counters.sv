@@ -47,7 +47,9 @@ module perf_counters import ariane_pkg::*; #(
   input  dcache_req_i_t[2:0]                      l1_dcache_access_i,
   input  logic [NumPorts-1:0][DCACHE_SET_ASSOC-1:0]miss_vld_bits_i,  //For Cache eviction (3ports-LOAD,STORE,PTW)
   input  logic                                    i_tlb_flush_i,
-  input  logic                                    stall_issue_i  //stall-read operands
+  input  logic                                    stall_issue_i,  //stall-read operands
+
+  output logic                                    threshold_o
 );
 
   logic [63:0] generic_counter_d[6:1];
@@ -102,15 +104,17 @@ module perf_counters import ariane_pkg::*; #(
         generic_counter_d = generic_counter_q;
         data_o = 'b0;
         mhpmevent_d = mhpmevent_q;
+        threshold_o = 'b0;
 	    read_access_exception =  1'b0;
 	    update_access_exception =  1'b0;
+
+      if (generic_counter_d[1] >= 'b100) begin
+        threshold_o = 'b1; end
 
       for(int unsigned i = 1; i <= 6; i++) begin
          if ((!debug_mode_i) && (!we_i)) begin
              if (events[i] == 1)begin
                 generic_counter_d[i] = generic_counter_q[i] + 1'b1;end
-            else begin
-                generic_counter_d[i] = 'b0;end
         end
       end
 
@@ -157,7 +161,7 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_5,
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
-            riscv::CSR_MHPM_EVENT_8   : mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = data_i;
+            riscv::CSR_MHPM_EVENT_8   :begin mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = data_i; generic_counter_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = 'b0;end
             default: update_access_exception =  1'b1;
         endcase
       end

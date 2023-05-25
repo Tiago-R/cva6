@@ -207,6 +207,7 @@ module cva6 import ariane_pkg::*; #(
   logic                     icache_miss_cache_perf;
   logic [NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
   logic                     stall_issue;
+  logic                     perf_threshold;
   // --------------
   // CTRL <-> *
   // --------------
@@ -601,6 +602,7 @@ module cva6 import ariane_pkg::*; #(
     .perf_we_o              ( we_csr_perf                   ),
     .pmpcfg_o               ( pmpcfg                        ),
     .pmpaddr_o              ( pmpaddr                       ),
+    .perf_threshold_i       ( perf_threshold                ),
     .debug_req_i,
     .ipi_i,
     .irq_i,
@@ -639,7 +641,8 @@ module cva6 import ariane_pkg::*; #(
     .l1_dcache_access_i  ( dcache_req_ports_ex_cache ),
     .miss_vld_bits_i     ( miss_vld_bits             ),
     .i_tlb_flush_i       ( flush_tlb_ctrl_ex         ),
-    .stall_issue_i       ( stall_issue               )
+    .stall_issue_i       ( stall_issue               ),
+    .threshold_o         ( perf_threshold            )
   );
  end
 
