@@ -207,7 +207,7 @@ module cva6 import ariane_pkg::*; #(
   logic                     icache_miss_cache_perf;
   logic [NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
   logic                     stall_issue;
-  logic                     perf_threshold;
+  logic [11:0]              perf_threshold;
   // --------------
   // CTRL <-> *
   // --------------

@@ -6,13 +6,18 @@ int main(int argc, char const *argv[])
     // char buf[100];
     float a = 0.3, b = 0.5;
 
+    __asm__ volatile("csrw 0xb23, %0"
+                     :
+                     : "r"(0x3)
+                     :);
+
     __asm__ volatile("csrw 0x323, %0"
                      :
-                     //  : "r"(0x9)
-                     : "r"(0x6)
+                     : "r"(0x9)
+                    //  : "r"(0x6)
                      :); // b01001 branch instructions
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5; i++)
     {
         a = a + b;
         // __asm__ volatile("csrr %0, hpmcounter3"
