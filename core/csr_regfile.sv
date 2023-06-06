@@ -1136,24 +1136,24 @@ module csr_regfile import ariane_pkg::*; #(
         //TODO_INESC: Figure out how to enable privilege mode M when writing to MHPM_THRESHOLD registers
         // if we are reading or writing, check for the correct privilege level this has
         // precedence over interrupts
-        // if (csr_op_i inside {CSR_WRITE, CSR_SET, CSR_CLEAR, CSR_READ}) begin
-        //     if ((riscv::priv_lvl_t'(priv_lvl_o & csr_addr.csr_decode.priv_lvl) != csr_addr.csr_decode.priv_lvl)) begin
-        //         privilege_violation = 1'b1;
-        //     end
-        //     // check access to debug mode only CSRs
-        //     if (csr_addr_i[11:4] == 8'h7b && !debug_mode_q) begin
-        //         privilege_violation = 1'b1;
-        //     end
-        //     // check counter-enabled counter CSR accesses
-        //     // counter address range is C00 to C1F
-        //     if (csr_addr_i inside {[riscv::CSR_CYCLE:riscv::CSR_HPM_COUNTER_31]}) begin
-        //         unique case (priv_lvl_o)
-        //             riscv::PRIV_LVL_M: privilege_violation = 1'b0;
-        //             riscv::PRIV_LVL_S: privilege_violation = ~mcounteren_q[csr_addr_i[4:0]];
-        //             riscv::PRIV_LVL_U: privilege_violation = ~mcounteren_q[csr_addr_i[4:0]] & ~scounteren_q[csr_addr_i[4:0]];
-        //         endcase
-        //     end
-        // end
+        if (csr_op_i inside {CSR_WRITE, CSR_SET, CSR_CLEAR, CSR_READ}) begin
+            if ((riscv::priv_lvl_t'(priv_lvl_o & csr_addr.csr_decode.priv_lvl) != csr_addr.csr_decode.priv_lvl)) begin
+                privilege_violation = 1'b1;
+            end
+            // check access to debug mode only CSRs
+            if (csr_addr_i[11:4] == 8'h7b && !debug_mode_q) begin
+                privilege_violation = 1'b1;
+            end
+            // check counter-enabled counter CSR accesses
+            // counter address range is C00 to C1F
+            if (csr_addr_i inside {[riscv::CSR_CYCLE:riscv::CSR_HPM_COUNTER_31],[riscv::CSR_MHPM_EVENT_3:riscv::CSR_MHPM_EVENT_8],[riscv::CSR_MCYCLE:riscv::CSR_MHPM_COUNTER_31H],[riscv::CSR_MHPM_THRESHOLD_3:riscv::CSR_MHPM_THRESHOLD_31H]}) begin
+                unique case (priv_lvl_o)
+                    riscv::PRIV_LVL_M: privilege_violation = 1'b0;
+                    riscv::PRIV_LVL_S: privilege_violation = ~mcounteren_q[csr_addr_i[4:0]];
+                    riscv::PRIV_LVL_U: privilege_violation = ~mcounteren_q[csr_addr_i[4:0]] & ~scounteren_q[csr_addr_i[4:0]];
+                endcase
+            end
+        end
     end
     // ----------------------
     // CSR Exception Control
