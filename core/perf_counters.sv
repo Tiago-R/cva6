@@ -49,7 +49,7 @@ module perf_counters import ariane_pkg::*; #(
   input  logic                                    i_tlb_flush_i,
   input  logic                                    stall_issue_i,  //stall-read operands
 
-  output logic [11:0]                             threshold_o
+  output logic                                    perf_counter_irq_o
 );
 
   logic [63:0] generic_counter_d[6:1];
@@ -108,15 +108,9 @@ module perf_counters import ariane_pkg::*; #(
         generic_counter_d = generic_counter_q;
         data_o = 'b0;
         mhpmevent_d = mhpmevent_q;
-        threshold_o[11:0]='{default:0};
         threshold_d = threshold_q;
 	    read_access_exception =  1'b0;
 	    update_access_exception =  1'b0;
-
-      for (int unsigned i = 1; i <= 6; i++) begin
-        if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
-          threshold_o[i - 1] = 'b1; end
-      end
 
       for(int unsigned i = 1; i <= 6; i++) begin
          if ((!debug_mode_i) && (!we_i)) begin
@@ -197,6 +191,20 @@ module perf_counters import ariane_pkg::*; #(
         endcase
       end
     end
+    
+  // ----------------------
+  // Perf External Interrupt Request Control
+  // ----------------------
+  always_comb begin : perf_irq_ctrl
+    perf_counter_irq_o = 'b0;
+
+
+    for (int unsigned i = 1; i <= 6; i++) begin
+      if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
+        perf_counter_irq_o = 'b1;
+      end
+    end
+  end
 
 //Registers
   always_ff @(posedge clk_i or negedge rst_ni) begin

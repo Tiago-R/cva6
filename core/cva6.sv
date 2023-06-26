@@ -36,6 +36,7 @@ module cva6 import ariane_pkg::*; #(
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
+  output logic                         perf_counter_irq_o,
   // RISC-V formal interface port (`rvfi`):
   // Can be left open when formal tracing is not needed.
   output ariane_pkg::rvfi_port_t       rvfi_o,
@@ -207,7 +208,6 @@ module cva6 import ariane_pkg::*; #(
   logic                     icache_miss_cache_perf;
   logic [NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
   logic                     stall_issue;
-  logic [11:0]              perf_threshold;
   // --------------
   // CTRL <-> *
   // --------------
@@ -602,7 +602,6 @@ module cva6 import ariane_pkg::*; #(
     .perf_we_o              ( we_csr_perf                   ),
     .pmpcfg_o               ( pmpcfg                        ),
     .pmpaddr_o              ( pmpaddr                       ),
-    .perf_threshold_i       ( perf_threshold                ),
     .debug_req_i,
     .ipi_i,
     .irq_i,
@@ -642,7 +641,7 @@ module cva6 import ariane_pkg::*; #(
     .miss_vld_bits_i     ( miss_vld_bits             ),
     .i_tlb_flush_i       ( flush_tlb_ctrl_ex         ),
     .stall_issue_i       ( stall_issue               ),
-    .threshold_o         ( perf_threshold            )
+    .perf_counter_irq_o  ( perf_counter_irq_o        )
   );
  end
 

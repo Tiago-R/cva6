@@ -85,8 +85,7 @@ module csr_regfile import ariane_pkg::*; #(
     output logic                  perf_we_o,
     // PMPs
     output riscv::pmpcfg_t [15:0] pmpcfg_o,   // PMP configuration containing pmpcfg for max 16 PMPs
-    output logic [15:0][riscv::PLEN-3:0] pmpaddr_o,            // PMP addresses
-    input  logic [11:0]           perf_threshold_i
+    output logic [15:0][riscv::PLEN-3:0] pmpaddr_o            // PMP addresses
 );
     // internal signal to keep track of access exceptions
     logic        read_access_exception, update_access_exception, privilege_violation;
@@ -1178,15 +1177,7 @@ module csr_regfile import ariane_pkg::*; #(
           csr_exception_o.cause = riscv::ILLEGAL_INSTR;
           csr_exception_o.valid = 1'b1;
         end
-
-        for (int unsigned i = 0; i <= 11; i++) begin
-            if (perf_threshold_i[i]) begin
-                csr_exception_o.cause = riscv::ILLEGAL_INSTR;
-                csr_exception_o.valid = 1'b1;
-            end
-        end
     end
-
     // -------------------
     // Wait for Interrupt
     // -------------------
