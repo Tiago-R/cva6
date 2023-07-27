@@ -49,7 +49,8 @@ module perf_counters import ariane_pkg::*; #(
   input  logic                                    i_tlb_flush_i,
   input  logic                                    stall_issue_i,  //stall-read operands
 
-  output logic                                    perf_counter_irq_o
+  output logic                                    perf_counter_irq_o,
+  input  logic[31:0]                              mcountinhibit_i
 );
 
   logic [63:0] generic_counter_d[6:1];
@@ -114,7 +115,7 @@ module perf_counters import ariane_pkg::*; #(
 
       for(int unsigned i = 1; i <= 6; i++) begin
          if ((!debug_mode_i) && (!we_i)) begin
-             if (events[i] == 1)begin
+             if ((events[i]) == 1 && (!mcountinhibit_i[i+2]))begin
                 generic_counter_d[i] = generic_counter_q[i] + 1'b1;end
         end
       end
