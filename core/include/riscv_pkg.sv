@@ -549,6 +549,7 @@ package riscv;
         CSR_MHPM_THRESHOLD_29H = 12'hBBD,  // reserved
         CSR_MHPM_THRESHOLD_30H = 12'hBBE,  // reserved
         CSR_MHPM_THRESHOLD_31H = 12'hBBF,  // reserved
+        CSR_MHPM_MMAPED_3 = 12'hBC0,
         // Cache Control (platform specifc)
         CSR_DCACHE         = 12'h701,
         CSR_ICACHE         = 12'h700,

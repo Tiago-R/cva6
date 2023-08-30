@@ -466,6 +466,8 @@ module csr_regfile import ariane_pkg::*; #(
                 riscv::CSR_HPM_COUNTER_30H,
                 riscv::CSR_HPM_COUNTER_31H :     if (riscv::XLEN == 32) csr_rdata = perf_data_i; else read_access_exception = 1'b1;
 
+                riscv::CSR_MHPM_MMAPED_3 :  csr_rdata = perf_data_i;
+
                 // custom (non RISC-V) cache control
                 riscv::CSR_DCACHE:           csr_rdata = dcache_q;
                 riscv::CSR_ICACHE:           csr_rdata = icache_q;
@@ -911,6 +913,8 @@ module csr_regfile import ariane_pkg::*; #(
                 riscv::CSR_MHPM_THRESHOLD_29H,
                 riscv::CSR_MHPM_THRESHOLD_30H,
                 riscv::CSR_MHPM_THRESHOLD_31H : begin perf_we_o = 1'b1; if (riscv::XLEN == 32) perf_data_o = csr_wdata;else update_access_exception = 1'b1;end
+
+                riscv::CSR_MHPM_MMAPED_3 :  begin perf_we_o = 1'b1; perf_data_o = csr_wdata;end
 
                 riscv::CSR_DCACHE:             dcache_d    = {{riscv::XLEN-1{1'b0}}, csr_wdata[0]}; // enable bit
                 riscv::CSR_ICACHE:             icache_d    = {{riscv::XLEN-1{1'b0}}, csr_wdata[0]}; // enable bit

@@ -67,6 +67,8 @@ module perf_counters import ariane_pkg::*; #(
   //internal signal for threshold configuration
   logic [63:0] threshold_d[6:1];
   logic [63:0] threshold_q[6:1];
+  logic [63:0] mmaped_addr_d;
+  logic [63:0] mmaped_addr_q;
 
   //Multiplexer
    always_comb begin : Mux
@@ -110,6 +112,7 @@ module perf_counters import ariane_pkg::*; #(
         data_o = 'b0;
         mhpmevent_d = mhpmevent_q;
         threshold_d = threshold_q;
+        mmaped_addr_d = mmaped_addr_q;
 	    read_access_exception =  1'b0;
 	    update_access_exception =  1'b0;
 
@@ -152,6 +155,7 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_THRESHOLD_6H,
             riscv::CSR_MHPM_THRESHOLD_7H,
             riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32]; else read_access_exception = 1'b1;end
+            riscv::CSR_MHPM_MMAPED_3 : begin data_o = mmaped_addr_q; end
             default: data_o = 'b0;
         endcase
 
@@ -188,6 +192,8 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_THRESHOLD_6H,
             riscv::CSR_MHPM_THRESHOLD_7H,
             riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32] = data_i; else update_access_exception = 1'b1;end
+            riscv::CSR_MHPM_MMAPED_3  : begin mmaped_addr_d = data_i; end
+
             default: update_access_exception =  1'b1;
         endcase
       end
@@ -213,10 +219,12 @@ module perf_counters import ariane_pkg::*; #(
             generic_counter_q <= '{default:0};
             mhpmevent_q       <= '{default:0};
             threshold_q       <= '{default:0};
+            mmaped_addr_q     <= '{default:0};
         end else begin
             generic_counter_q <= generic_counter_d;
             mhpmevent_q       <= mhpmevent_d;
             threshold_q       <= threshold_d;
+            mmaped_addr_q     <= mmaped_addr_d;
        end
    end
 
