@@ -22,7 +22,7 @@ uintptr_t sysCallMmap()
                     :
                     :
                     :);
-    __asm__ volatile("addi a3, x0, 22" // flags = MAP_PRIVATE|MAP_ANONYMOUS
+    __asm__ volatile("addi a3, x0, 0x22" // flags = MAP_PRIVATE|MAP_ANONYMOUS
                     :
                     :
                     :);
@@ -52,6 +52,7 @@ int main(int argc, char const *argv[])
 
     ptr = (uintptr_t *)sysCallMmap();
 
+    // Set mmaped address to save
     __asm__ volatile("add a1, x0, %0"
                     :
                     :"r"(ptr)
@@ -65,39 +66,48 @@ int main(int argc, char const *argv[])
                     :
                     :);
     
-    // printf("ptr: %p\n", ptr);
+    // printf("ptr: %p\n", (void*) ptr);
 
-    // __asm__ volatile("addi a1, x0, 1000"
-    //                 :
-    //                 :
-    //                 :);
-    // __asm__ volatile("addi a7, x0, 10"
-    //                 :
-    //                 :
-    //                 :);
-    // __asm__ volatile("ecall"
-    //                 :
+    // Set threshold to 100
+    __asm__ volatile("addi a1, x0, 3"
+                    :
+                    :
+                    :);
+    __asm__ volatile("addi a7, x0, 10"
+                    :
+                    :
+                    :);
+    __asm__ volatile("ecall"
+                    :
+                    :
+                    :);
+
+
+    // Set event to be counted
+    __asm__ volatile("addi a1, x0, 21"
+                    :
+                    :
+                    :);
+    __asm__ volatile("addi a7, x0, 9"
+                    :
+                    :
+                    :);
+    __asm__ volatile("ecall"
+                    :
+                    :
+                    :);
+
+    for (int i = 0; i < 15; i++)
+    {
+        a = a + b;
+        // printf("Jump\n");
+    }
+
+    // __asm__ volatile("lw x10, 0(%0)"
+    //                 :"=r"(ptr)
     //                 :
     //                 :);
 
-    // __asm__ volatile("addi a1, x0, 9"
-    //                 :
-    //                 :
-    //                 :);
-    // __asm__ volatile("addi a7, x0, 9"
-    //                 :
-    //                 :
-    //                 :);
-    // __asm__ volatile("ecall"
-    //                 :
-    //                 :
-    //                 :);
-
-    // for (int i = 0; i < 5; i++)
-    // {
-    //     a = a + b;
-    //     printf("Jump\n");
-    // }
 
     // __asm__ volatile("addi a1, x0, 0"
     //                 :
