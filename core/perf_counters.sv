@@ -48,6 +48,8 @@ module perf_counters import ariane_pkg::*; #(
   input  logic [NumPorts-1:0][DCACHE_SET_ASSOC-1:0]miss_vld_bits_i,  //For Cache eviction (3ports-LOAD,STORE,PTW)
   input  logic                                    i_tlb_flush_i,
   input  logic                                    stall_issue_i,  //stall-read operands
+
+  output logic                                    perf_counter_irq_o,
   input  logic[31:0]                              mcountinhibit_i
 );
 
@@ -61,6 +63,12 @@ module perf_counters import ariane_pkg::*; #(
   //internal signal for  MUX select line input
   logic [4:0] mhpmevent_d[6:1];
   logic [4:0] mhpmevent_q[6:1];
+
+  //internal signal for threshold configuration
+  logic [63:0] threshold_d[6:1];
+  logic [63:0] threshold_q[6:1];
+  logic [63:0] mmaped_addr_d;
+  logic [63:0] mmaped_addr_q;
 
   //Multiplexer
    always_comb begin : Mux
@@ -103,6 +111,8 @@ module perf_counters import ariane_pkg::*; #(
         generic_counter_d = generic_counter_q;
         data_o = 'b0;
         mhpmevent_d = mhpmevent_q;
+        threshold_d = threshold_q;
+        mmaped_addr_d = mmaped_addr_q;
 	    read_access_exception =  1'b0;
 	    update_access_exception =  1'b0;
 
@@ -110,8 +120,6 @@ module perf_counters import ariane_pkg::*; #(
          if ((!debug_mode_i) && (!we_i)) begin
              if ((events[i]) == 1 && (!mcountinhibit_i[i+2]))begin
                 generic_counter_d[i] = generic_counter_q[i] + 1'b1;end
-            else begin
-                generic_counter_d[i] = 'b0;end
         end
       end
 
@@ -135,6 +143,19 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   : data_o = mhpmevent_q[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] ;
+            riscv::CSR_MHPM_THRESHOLD_3,
+            riscv::CSR_MHPM_THRESHOLD_4,
+            riscv::CSR_MHPM_THRESHOLD_5,
+            riscv::CSR_MHPM_THRESHOLD_6,
+            riscv::CSR_MHPM_THRESHOLD_7,
+            riscv::CSR_MHPM_THRESHOLD_8 : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0]; else data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1];end
+            riscv::CSR_MHPM_THRESHOLD_3H,
+            riscv::CSR_MHPM_THRESHOLD_4H,
+            riscv::CSR_MHPM_THRESHOLD_5H,
+            riscv::CSR_MHPM_THRESHOLD_6H,
+            riscv::CSR_MHPM_THRESHOLD_7H,
+            riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32]; else read_access_exception = 1'b1;end
+            riscv::CSR_MHPM_MMAPED_3 : begin data_o = mmaped_addr_q; end
             default: data_o = 'b0;
         endcase
 
@@ -158,20 +179,52 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_5,
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
-            riscv::CSR_MHPM_EVENT_8   : mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = data_i;
+            riscv::CSR_MHPM_EVENT_8   :begin mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = data_i; generic_counter_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = 'b0;end
+            riscv::CSR_MHPM_THRESHOLD_3,
+            riscv::CSR_MHPM_THRESHOLD_4,
+            riscv::CSR_MHPM_THRESHOLD_5,
+            riscv::CSR_MHPM_THRESHOLD_6,
+            riscv::CSR_MHPM_THRESHOLD_7,
+            riscv::CSR_MHPM_THRESHOLD_8 : begin if (riscv::XLEN == 32) threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0] = data_i; else threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1] = data_i; end
+            riscv::CSR_MHPM_THRESHOLD_3H,
+            riscv::CSR_MHPM_THRESHOLD_4H,
+            riscv::CSR_MHPM_THRESHOLD_5H,
+            riscv::CSR_MHPM_THRESHOLD_6H,
+            riscv::CSR_MHPM_THRESHOLD_7H,
+            riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32] = data_i; else update_access_exception = 1'b1;end
+            riscv::CSR_MHPM_MMAPED_3  : begin mmaped_addr_d = data_i; end
+
             default: update_access_exception =  1'b1;
         endcase
       end
     end
+    
+  // ----------------------
+  // Perf External Interrupt Request Control
+  // ----------------------
+  always_comb begin : perf_irq_ctrl
+    perf_counter_irq_o = 'b0;
+
+
+    for (int unsigned i = 1; i <= 6; i++) begin
+      if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
+        perf_counter_irq_o = 'b1;
+      end
+    end
+  end
 
 //Registers
   always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             generic_counter_q <= '{default:0};
             mhpmevent_q       <= '{default:0};
+            threshold_q       <= '{default:0};
+            mmaped_addr_q     <= '{default:0};
         end else begin
             generic_counter_q <= generic_counter_d;
             mhpmevent_q       <= mhpmevent_d;
+            threshold_q       <= threshold_d;
+            mmaped_addr_q     <= mmaped_addr_d;
        end
    end
 

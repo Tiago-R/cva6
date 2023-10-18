@@ -36,6 +36,7 @@ module ariane import ariane_pkg::*; #(
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
+  output logic                         perf_counter_irq_o,
 `ifdef RVFI_PORT
   // RISC-V formal interface port (`rvfi`):
   // Can be left open when formal tracing is not needed.
@@ -74,6 +75,7 @@ module ariane import ariane_pkg::*; #(
     .ipi_i                ( ipi_i                     ),
     .time_irq_i           ( time_irq_i                ),
     .debug_req_i          ( debug_req_i               ),
+    .perf_counter_irq_o   ( perf_counter_irq_o        ),
 `ifdef RVFI_PORT
     .rvfi_o               ( rvfi_o                    ),
 `else

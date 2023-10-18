@@ -67,6 +67,8 @@ module ariane_testharness #(
   logic        dmi_resp_ready;
   logic        dmi_resp_valid;
 
+  logic        perf_counter_irq;
+
   dm::dmi_req_t  jtag_dmi_req;
   dm::dmi_req_t  dmi_req;
 
@@ -580,6 +582,7 @@ module ariane_testharness #(
     .irq_o     ( irqs                         ),
     .rx_i      ( rx                           ),
     .tx_o      ( tx                           ),
+    .perf_counter_irq_i ( perf_counter_irq    ),
     .eth_txck  ( ),
     .eth_rxck  ( ),
     .eth_rxctl ( ),
@@ -626,7 +629,8 @@ module ariane_testharness #(
     .debug_req_i          ( debug_req_core      ),
 `endif
     .axi_req_o            ( axi_ariane_req      ),
-    .axi_resp_i           ( axi_ariane_resp     )
+    .axi_resp_i           ( axi_ariane_resp     ),
+    .perf_counter_irq_o   ( perf_counter_irq    )
   );
 
   `AXI_ASSIGN_FROM_REQ(slave[0], axi_ariane_req)
