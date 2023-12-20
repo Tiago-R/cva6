@@ -216,11 +216,18 @@ module perf_counters import ariane_pkg::*; #(
     end
     
   // ----------------------
-  // Perf External Interrupt Request Control
+  // Perf Event-Based Sampling Control
   // ----------------------
-  always_comb begin : perf_irq_ctrl
-    for (int unsigned i = 1; i <= 6; i++) begin
-      if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
+  always_comb begin : perf_ebs
+    if ((cycle_count_i >= threshold_cyc_q) && (threshold_cyc_q != 'b0)) begin
+      // TODO_INESC: Activate sampling mechanism
+    end else if ((instr_count_i >= threshold_instret_q) && (threshold_instret_q != 'b0)) begin
+      // TODO_INESC: Activate sampling mechanism
+    end else begin
+      for (int unsigned i = 1; i <= 6; i++) begin
+        if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
+          // TODO_INESC: Activate sampling mechanism
+        end
       end
     end
   end
