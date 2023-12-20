@@ -84,6 +84,9 @@ module csr_regfile import ariane_pkg::*; #(
     output logic[riscv::XLEN-1:0] perf_data_o,                // write data to performance counter module
     input  logic[riscv::XLEN-1:0] perf_data_i,                // read data from performance counter module
     output logic                  perf_we_o,
+    output logic[63:0]            perf_cyc_count_o,             // Cycle count to performance counter module
+    output logic[63:0]            perf_instret_count_o,         // Instret count to performance counter module
+
     // PMPs
     output riscv::pmpcfg_t [15:0] pmpcfg_o,   // PMP configuration containing pmpcfg for max 16 PMPs
     output logic [15:0][riscv::PLEN-3:0] pmpaddr_o,           // PMP addresses
@@ -154,6 +157,8 @@ module csr_regfile import ariane_pkg::*; #(
     // ----------------
     assign csr_addr = riscv::csr_t'(csr_addr_i);
     assign fs_o = mstatus_q.fs;
+    assign perf_cyc_count_o = cycle_q;
+    assing perf_instret_count_o = instret_q;
     // ----------------
     // CSR Read logic
     // ----------------

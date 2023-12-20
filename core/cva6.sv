@@ -195,6 +195,8 @@ module cva6 import ariane_pkg::*; #(
   riscv::pmpcfg_t [15:0]    pmpcfg;
   logic [15:0][riscv::PLEN-3:0] pmpaddr;
   logic [31:0]              mcountinhibit_csr_perf;
+  logic [63:0]              cycle_count_csr_perf;
+  logic [63:0]              instret_count_csr_perf;
   // ----------------------------
   // Performance Counters <-> *
   // ----------------------------
@@ -602,6 +604,8 @@ module cva6 import ariane_pkg::*; #(
     .perf_data_o            ( data_csr_perf                 ),
     .perf_data_i            ( data_perf_csr                 ),
     .perf_we_o              ( we_csr_perf                   ),
+    .perf_cyc_count_o       ( cycle_count_csr_perf          ),
+    .perf_instret_count_o   ( instret_count_csr_perf        ),
     .pmpcfg_o               ( pmpcfg                        ),
     .pmpaddr_o              ( pmpaddr                       ),
     .mcountinhibit_o        ( mcountinhibit_csr_perf        ),
@@ -644,6 +648,8 @@ module cva6 import ariane_pkg::*; #(
     .miss_vld_bits_i     ( miss_vld_bits             ),
     .i_tlb_flush_i       ( flush_tlb_ctrl_ex         ),
     .stall_issue_i       ( stall_issue               ),
+    .cycle_count_i       ( cycle_count_csr_perf      ),
+    .instr_count_i       ( instret_count_csr_perf    ),
     .perf_counter_irq_o  ( perf_counter_irq_o        ),
     .mcountinhibit_i     ( mcountinhibit_csr_perf    )
   );
