@@ -350,6 +350,8 @@ module csr_regfile import ariane_pkg::*; #(
                 riscv::CSR_MHPM_COUNTER_30H,
                 riscv::CSR_MHPM_COUNTER_31H :     if (riscv::XLEN == 32) csr_rdata = perf_data_i; else read_access_exception = 1'b1;
 
+                riscv::CSR_MHPM_THRESHOLD_CYC,
+                riscv::CSR_MHPM_THRESHOLD_INSTRET,
                 riscv::CSR_MHPM_THRESHOLD_3,
                 riscv::CSR_MHPM_THRESHOLD_4,
                 riscv::CSR_MHPM_THRESHOLD_5,
@@ -380,6 +382,8 @@ module csr_regfile import ariane_pkg::*; #(
                 riscv::CSR_MHPM_THRESHOLD_30,
                 riscv::CSR_MHPM_THRESHOLD_31 :  csr_rdata   = perf_data_i; 
 
+                riscv::CSR_MHPM_THRESHOLD_CYCH,
+                riscv::CSR_MHPM_THRESHOLD_INSTRETH,
                 riscv::CSR_MHPM_THRESHOLD_3H,
                 riscv::CSR_MHPM_THRESHOLD_4H,
                 riscv::CSR_MHPM_THRESHOLD_5H,
@@ -859,6 +863,8 @@ module csr_regfile import ariane_pkg::*; #(
                 riscv::CSR_MHPM_COUNTER_30H,
                 riscv::CSR_MHPM_COUNTER_31H :  begin perf_we_o = 1'b1; if (riscv::XLEN == 32) perf_data_o = csr_wdata;else update_access_exception = 1'b1;end
 
+                riscv::CSR_MHPM_THRESHOLD_CYC,
+                riscv::CSR_MHPM_THRESHOLD_INSTRET,
                 riscv::CSR_MHPM_THRESHOLD_3,
                 riscv::CSR_MHPM_THRESHOLD_4,
                 riscv::CSR_MHPM_THRESHOLD_5,
@@ -889,6 +895,8 @@ module csr_regfile import ariane_pkg::*; #(
                 riscv::CSR_MHPM_THRESHOLD_30,
                 riscv::CSR_MHPM_THRESHOLD_31 :  begin perf_we_o = 1'b1; perf_data_o = csr_wdata;end
 
+                riscv::CSR_MHPM_THRESHOLD_CYCH,
+                riscv::CSR_MHPM_THRESHOLD_INSTRETH,
                 riscv::CSR_MHPM_THRESHOLD_3H,
                 riscv::CSR_MHPM_THRESHOLD_4H,
                 riscv::CSR_MHPM_THRESHOLD_5H,

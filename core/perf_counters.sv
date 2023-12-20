@@ -68,6 +68,10 @@ module perf_counters import ariane_pkg::*; #(
   logic [4:0] mhpmevent_q[6:1];
 
   //internal signal for threshold configuration
+  logic [63:0] threshold_cyc_d;
+  logic [63:0] threshold_cyc_q;
+  logic [63:0] threshold_instret_d;
+  logic [63:0] threshold_instret_q;
   logic [63:0] threshold_d[6:1];
   logic [63:0] threshold_q[6:1];
   logic [63:0] mmaped_addr_d;
@@ -115,6 +119,8 @@ module perf_counters import ariane_pkg::*; #(
         data_o = 'b0;
         mhpmevent_d = mhpmevent_q;
         threshold_d = threshold_q;
+        threshold_cyc_d = threshold_cyc_q;
+        threshold_instret_d = threshold_instret_q;
         mmaped_addr_d = mmaped_addr_q;
 	    read_access_exception =  1'b0;
 	    update_access_exception =  1'b0;
@@ -146,12 +152,16 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   : data_o = mhpmevent_q[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] ;
+            riscv::CSR_MHPM_THRESHOLD_CYC : begin if (riscv::XLEN == 32) data_o = threshold_cyc_q[31:0]; else data_o = threshold_cyc_q; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin if (riscv::XLEN == 32) data_o = threshold_instret_q[31:0]; else data_o = threshold_instret_q; end
             riscv::CSR_MHPM_THRESHOLD_3,
             riscv::CSR_MHPM_THRESHOLD_4,
             riscv::CSR_MHPM_THRESHOLD_5,
             riscv::CSR_MHPM_THRESHOLD_6,
             riscv::CSR_MHPM_THRESHOLD_7,
             riscv::CSR_MHPM_THRESHOLD_8 : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0]; else data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1];end
+            riscv::CSR_MHPM_THRESHOLD_CYCH : begin if (riscv::XLEN == 32) data_o = threshold_cyc_q[63:32]; else read_access_exception = 1'b1; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRETH : begin if (riscv::XLEN == 32) data_o = threshold_instret_q[63:32]; else read_access_exception = 1'b1; end
             riscv::CSR_MHPM_THRESHOLD_3H,
             riscv::CSR_MHPM_THRESHOLD_4H,
             riscv::CSR_MHPM_THRESHOLD_5H,
@@ -183,12 +193,16 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   :begin mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = data_i; generic_counter_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = 'b0;end
+            riscv::CSR_MHPM_THRESHOLD_CYC : begin (riscv::XLEN == 32) threshold_cyc_d[31:0] = data_i; else threshold_cyc_d = data_i; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin (riscv::XLEN == 32) threshold_instret_d[31:0] = data_i; else threshold_instret_d = data_i; end
             riscv::CSR_MHPM_THRESHOLD_3,
             riscv::CSR_MHPM_THRESHOLD_4,
             riscv::CSR_MHPM_THRESHOLD_5,
             riscv::CSR_MHPM_THRESHOLD_6,
             riscv::CSR_MHPM_THRESHOLD_7,
             riscv::CSR_MHPM_THRESHOLD_8 : begin if (riscv::XLEN == 32) threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0] = data_i; else threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1] = data_i; end
+            riscv::CSR_MHPM_THRESHOLD_CYCH : begin if (riscv::XLEN == 32) threshold_cyc_d[63:32] = data_i; else update_access_exception = 1'b1; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRETH : begin if (riscv::XLEN == 32) threshold_instret_d[63:32] = data_i; else update_access_exception = 1'b1; end
             riscv::CSR_MHPM_THRESHOLD_3H,
             riscv::CSR_MHPM_THRESHOLD_4H,
             riscv::CSR_MHPM_THRESHOLD_5H,
@@ -219,15 +233,19 @@ module perf_counters import ariane_pkg::*; #(
 //Registers
   always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
-            generic_counter_q <= '{default:0};
-            mhpmevent_q       <= '{default:0};
-            threshold_q       <= '{default:0};
-            mmaped_addr_q     <= '{default:0};
+            generic_counter_q   <= '{default:0};
+            mhpmevent_q         <= '{default:0};
+            threshold_q         <= '{default:0};
+            threshold_cyc_q     <= '{default:0};
+            threshold_instret_q <= '{default:0};
+            mmaped_addr_q       <= '{default:0};
         end else begin
-            generic_counter_q <= generic_counter_d;
-            mhpmevent_q       <= mhpmevent_d;
-            threshold_q       <= threshold_d;
-            mmaped_addr_q     <= mmaped_addr_d;
+            generic_counter_q   <= generic_counter_d;
+            mhpmevent_q         <= mhpmevent_d;
+            threshold_q         <= threshold_d;
+            threshold_cyc_q     <= threshold_cyc_d;
+            threshold_instret_q <= threshold_instret_d;
+            mmaped_addr_q       <= mmaped_addr_d;
        end
    end
 

@@ -491,6 +491,8 @@ package riscv;
         CSR_MHPM_COUNTER_30H = 12'hB9E,  // reserved
         CSR_MHPM_COUNTER_31H = 12'hB9F,  // reserved
         // PEBS-like extension
+        CSR_MHPM_THRESHOLD_CYC = 12'hB20,
+        CSR_MHPM_THRESHOLD_INSTRET = 12'hB22,
         CSR_MHPM_THRESHOLD_3 = 12'hB23,
         CSR_MHPM_THRESHOLD_4 = 12'hB24,
         CSR_MHPM_THRESHOLD_5 = 12'hB25,
@@ -520,6 +522,8 @@ package riscv;
         CSR_MHPM_THRESHOLD_29 = 12'hB3D,  // reserved
         CSR_MHPM_THRESHOLD_30 = 12'hB3E,  // reserved
         CSR_MHPM_THRESHOLD_31 = 12'hB3F,  // reserved        
+        CSR_MHPM_THRESHOLD_CYCH = 12'hBA0,
+        CSR_MHPM_THRESHOLD_INSTRETH = 12'hBA2,
         CSR_MHPM_THRESHOLD_3H = 12'hBA3,  
         CSR_MHPM_THRESHOLD_4H = 12'hBA4,  
         CSR_MHPM_THRESHOLD_5H = 12'hBA5,  
