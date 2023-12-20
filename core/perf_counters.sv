@@ -193,8 +193,8 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   :begin mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = data_i; generic_counter_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = 'b0;end
-            riscv::CSR_MHPM_THRESHOLD_CYC : begin (riscv::XLEN == 32) threshold_cyc_d[31:0] = data_i; else threshold_cyc_d = data_i; end
-            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin (riscv::XLEN == 32) threshold_instret_d[31:0] = data_i; else threshold_instret_d = data_i; end
+            riscv::CSR_MHPM_THRESHOLD_CYC : begin if (riscv::XLEN == 32) threshold_cyc_d[31:0] = data_i; else threshold_cyc_d = data_i; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin if (riscv::XLEN == 32) threshold_instret_d[31:0] = data_i; else threshold_instret_d = data_i; end
             riscv::CSR_MHPM_THRESHOLD_3,
             riscv::CSR_MHPM_THRESHOLD_4,
             riscv::CSR_MHPM_THRESHOLD_5,
