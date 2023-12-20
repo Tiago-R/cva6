@@ -158,7 +158,7 @@ module csr_regfile import ariane_pkg::*; #(
     assign csr_addr = riscv::csr_t'(csr_addr_i);
     assign fs_o = mstatus_q.fs;
     assign perf_cyc_count_o = cycle_q;
-    assing perf_instret_count_o = instret_q;
+    assign perf_instret_count_o = instret_q;
     // ----------------
     // CSR Read logic
     // ----------------
