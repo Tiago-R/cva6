@@ -52,7 +52,6 @@ module perf_counters import ariane_pkg::*; #(
   input  logic [63:0]                             cycle_count_i,
   input  logic [63:0]                             instr_count_i,
 
-  output logic                                    perf_counter_irq_o,
   input  logic[31:0]                              mcountinhibit_i
 );
 
@@ -220,12 +219,8 @@ module perf_counters import ariane_pkg::*; #(
   // Perf External Interrupt Request Control
   // ----------------------
   always_comb begin : perf_irq_ctrl
-    perf_counter_irq_o = 'b0;
-
-
     for (int unsigned i = 1; i <= 6; i++) begin
       if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
-        perf_counter_irq_o = 'b1;
       end
     end
   end

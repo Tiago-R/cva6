@@ -51,8 +51,7 @@ module ariane_peripherals #(
     output logic       spi_clk_o       ,
     output logic       spi_mosi        ,
     input  logic       spi_miso        ,
-    output logic       spi_ss          ,
-    input  logic       perf_counter_irq_i
+    output logic       spi_ss
 );
 
     // ---------------
@@ -61,7 +60,7 @@ module ariane_peripherals #(
     logic [ariane_soc::NumSources-1:0] irq_sources;
 
     // Unused interrupt sources
-    assign irq_sources[ariane_soc::NumSources-1:8] = '0;
+    assign irq_sources[ariane_soc::NumSources-1:7] = '0;
 
     REG_BUS #(
         .ADDR_WIDTH ( 32 ),
@@ -616,16 +615,5 @@ module ariane_peripherals #(
             .PSLVERR ( timer_pslverr    ),
             .irq_o   ( irq_sources[6:3] )
         );
-    end
-
-    // ---------------
-    // 6. PEBS-Like
-    // ---------------
-    if (0)
-      begin
-      end
-    else
-      begin
-        assign irq_sources [7] = perf_counter_irq_i;
     end
 endmodule

@@ -36,7 +36,6 @@ module cva6 import ariane_pkg::*; #(
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
-  output logic                         perf_counter_irq_o,
   // RISC-V formal interface port (`rvfi`):
   // Can be left open when formal tracing is not needed.
   output ariane_pkg::rvfi_port_t       rvfi_o,
@@ -650,7 +649,6 @@ module cva6 import ariane_pkg::*; #(
     .stall_issue_i       ( stall_issue               ),
     .cycle_count_i       ( cycle_count_csr_perf      ),
     .instr_count_i       ( instret_count_csr_perf    ),
-    .perf_counter_irq_o  ( perf_counter_irq_o        ),
     .mcountinhibit_i     ( mcountinhibit_csr_perf    )
   );
  end
