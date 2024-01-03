@@ -649,7 +649,8 @@ module cva6 import ariane_pkg::*; #(
     .stall_issue_i       ( stall_issue               ),
     .cycle_count_i       ( cycle_count_csr_perf      ),
     .instr_count_i       ( instret_count_csr_perf    ),
-    .mcountinhibit_i     ( mcountinhibit_csr_perf    )
+    .mcountinhibit_i     ( mcountinhibit_csr_perf    ),
+    .pc_i                ( pc_commit                 )
   );
  end
 
