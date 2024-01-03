@@ -84,8 +84,8 @@ module csr_regfile import ariane_pkg::*; #(
     output logic[riscv::XLEN-1:0] perf_data_o,                // write data to performance counter module
     input  logic[riscv::XLEN-1:0] perf_data_i,                // read data from performance counter module
     output logic                  perf_we_o,
-    output logic[63:0]            perf_cyc_count_o,             // Cycle count to performance counter module
-    output logic[63:0]            perf_instret_count_o,         // Instret count to performance counter module
+    output logic[63:0]            perf_cyc_count_o,           // Cycle count to performance counter module
+    output logic[63:0]            perf_instret_count_o,       // Instret count to performance counter module
 
     // PMPs
     output riscv::pmpcfg_t [15:0] pmpcfg_o,   // PMP configuration containing pmpcfg for max 16 PMPs
