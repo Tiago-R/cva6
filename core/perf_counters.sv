@@ -52,8 +52,23 @@ module perf_counters import ariane_pkg::*; #(
   input  logic [63:0]                             cycle_count_i,
   input  logic [63:0]                             instr_count_i,
 
-  input  logic[31:0]                              mcountinhibit_i
+  input  logic[31:0]                              mcountinhibit_i,
+  input  logic [riscv::VLEN-1:0]                  pc_i
 );
+  // fifo to store event-based samples
+  localparam int unsigned NR_ENTRIES = 8;
+  localparam int unsigned BITS_ENTRIES = $clog2(NR_ENTRIES);
+
+  typedef struct packed {
+    logic                   valid;
+    logic [riscv::VLEN-1:0] pc;
+  } ebs_mem_t;
+  ebs_mem_t [NR_ENTRIES-1:0]  sample_mem_q, sample_mem_d;
+  logic                       buffer_full, buffer_empty, buffer_we, buffer_re;
+  logic [BITS_ENTRIES:0]      buffer_cnt_q, buffer_cnt_d;
+  logic [BITS_ENTRIES-1:0]    buffer_rd_pointer_q, buffer_rd_pointer_d, buffer_wr_pointer_q, buffer_wr_pointer_d;
+
+  assign buffer_full = (buffer_cnt_q[BITS_ENTRIES] == 1'b1);
 
   logic [63:0] generic_counter_d[6:1];
   logic [63:0] generic_counter_q[6:1];
@@ -66,9 +81,11 @@ module perf_counters import ariane_pkg::*; #(
   logic [4:0] mhpmevent_d[6:1];
   logic [4:0] mhpmevent_q[6:1];
 
-  //internal signal for threshold configuration
+  //internal signals for threshold configuration
   logic [63:0] threshold_cyc_d;
   logic [63:0] threshold_cyc_q;
+  logic [63:0] cycle_offset_d;
+  logic [63:0] cycle_offset_q;
   logic [63:0] threshold_instret_d;
   logic [63:0] threshold_instret_q;
   logic [63:0] threshold_d[6:1];
@@ -218,18 +235,40 @@ module perf_counters import ariane_pkg::*; #(
   // ----------------------
   // Perf Event-Based Sampling Control
   // ----------------------
-  always_comb begin : perf_ebs
-    if ((cycle_count_i >= threshold_cyc_q) && (threshold_cyc_q != 'b0)) begin
-      // TODO_INESC: Activate sampling mechanism
-    end else if ((instr_count_i >= threshold_instret_q) && (threshold_instret_q != 'b0)) begin
-      // TODO_INESC: Activate sampling mechanism
-    end else begin
-      for (int unsigned i = 1; i <= 6; i++) begin
-        if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
+  always_comb begin: sample_buffer
+    sample_mem_d = sample_mem_q;
+    cycle_offset_d = cycle_offset_q;
+    buffer_we = 1'b0;
+    buffer_re = 1'b0;
+
+    if (!buffer_full) begin
+      if ((cycle_count_i >= threshold_cyc_q + cycle_offset_q) && (threshold_cyc_q != 'b0)) begin
+        // TODO_INESC: Activate sampling mechanism
+        // ebs_ctrl_o.sample_source = 'b1; // No event_code needed because counter 0 is the fixed cycle counter
+        // ebs_ctrl_o.valid = 'b1;
+        buffer_we = 1'b1;
+        sample_mem_d[buffer_wr_pointer_q] = {1'b1,  // valid
+                                             pc_i}; // sampled pc
+        cycle_offset_d = cycle_count_i;
+      end else if ((instr_count_i >= threshold_instret_q) && (threshold_instret_q != 'b0)) begin
+        // TODO_INESC: Activate sampling mechanism
+      end else begin
+        for (int unsigned i = 1; i <= 6; i++) begin
+          if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
           // TODO_INESC: Activate sampling mechanism
+          end
         end
       end
     end
+
+    if (buffer_re) begin
+      sample_mem_d[buffer_rd_pointer_q].valid = 1'b0;
+    end
+
+    assign buffer_cnt_d = buffer_cnt_q - buffer_re + buffer_we;
+    assign buffer_rd_pointer_d = buffer_rd_pointer_q + buffer_re;
+    assign buffer_wr_pointer_d = buffer_wr_pointer_q + buffer_we;
+    
   end
 
 //Registers
@@ -241,6 +280,11 @@ module perf_counters import ariane_pkg::*; #(
             threshold_cyc_q     <= '{default:0};
             threshold_instret_q <= '{default:0};
             mmaped_addr_q       <= '{default:0};
+            sample_mem_q        <= '{default:ebs_mem_t'(0)};
+            buffer_wr_pointer_q <= '{default:0};
+            buffer_rd_pointer_q <= '{default:0};
+            buffer_cnt_q        <= '{default:0};
+            cycle_offset_q      <= '{default:0};
         end else begin
             generic_counter_q   <= generic_counter_d;
             mhpmevent_q         <= mhpmevent_d;
@@ -248,6 +292,11 @@ module perf_counters import ariane_pkg::*; #(
             threshold_cyc_q     <= threshold_cyc_d;
             threshold_instret_q <= threshold_instret_d;
             mmaped_addr_q       <= mmaped_addr_d;
+            sample_mem_q        <= sample_mem_d;
+            buffer_wr_pointer_q <= buffer_wr_pointer_d;
+            buffer_rd_pointer_q <= buffer_rd_pointer_d;
+            buffer_cnt_q        <= buffer_cnt_d;
+            cycle_offset_q      <= cycle_offset_d;
        end
    end
 
