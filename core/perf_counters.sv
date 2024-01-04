@@ -61,14 +61,16 @@ module perf_counters import ariane_pkg::*; #(
 
   typedef struct packed {
     logic                   valid;
+    ariane_pkg::sample_event_t  sampled_event;
     logic [riscv::VLEN-1:0] pc;
   } ebs_mem_t;
-  ebs_mem_t [NR_ENTRIES-1:0]  sample_mem_q, sample_mem_d;
-  logic                       buffer_full, buffer_empty, buffer_we, buffer_re;
-  logic [BITS_ENTRIES:0]      buffer_cnt_q, buffer_cnt_d;
-  logic [BITS_ENTRIES-1:0]    buffer_rd_pointer_q, buffer_rd_pointer_d, buffer_wr_pointer_q, buffer_wr_pointer_d;
+  
+  ebs_mem_t [NR_ENTRIES-1:0]  ebs_mem_q, ebs_mem_d;
+  logic                       ebs_mem_full, ebs_mem_empty, ebs_mem_we, ebs_mem_re;
+  logic [BITS_ENTRIES:0]      ebs_mem_cnt_q, ebs_mem_cnt_d;
+  logic [BITS_ENTRIES-1:0]    ebs_mem_rd_ptr_q, ebs_mem_rd_ptr_d, ebs_mem_wr_ptr_q, ebs_mem_wr_ptr_d;
 
-  assign buffer_full = (buffer_cnt_q[BITS_ENTRIES] == 1'b1);
+  assign ebs_mem_full = (ebs_mem_cnt_q[BITS_ENTRIES] == 1'b1);
 
   logic [63:0] generic_counter_d[6:1];
   logic [63:0] generic_counter_q[6:1];
@@ -236,19 +238,20 @@ module perf_counters import ariane_pkg::*; #(
   // Perf Event-Based Sampling Control
   // ----------------------
   always_comb begin: sample_buffer
-    sample_mem_d = sample_mem_q;
+    ebs_mem_d = ebs_mem_q;
     cycle_offset_d = cycle_offset_q;
-    buffer_we = 1'b0;
-    buffer_re = 1'b0;
+    ebs_mem_we = 1'b0;
+    ebs_mem_re = 1'b0;
 
-    if (!buffer_full) begin
+    if (!ebs_mem_full) begin
       if ((cycle_count_i >= threshold_cyc_q + cycle_offset_q) && (threshold_cyc_q != 'b0)) begin
         // TODO_INESC: Activate sampling mechanism
         // ebs_ctrl_o.sample_source = 'b1; // No event_code needed because counter 0 is the fixed cycle counter
         // ebs_ctrl_o.valid = 'b1;
-        buffer_we = 1'b1;
-        sample_mem_d[buffer_wr_pointer_q] = {1'b1,  // valid
-                                             pc_i}; // sampled pc
+        ebs_mem_we = 1'b1;
+        ebs_mem_d[ebs_mem_wr_ptr_q] = {1'b1,              // valid
+                                       ariane_pkg::CYCLE, // sampled event type
+                                       pc_i};             // sampled pc
         cycle_offset_d = cycle_count_i;
       end else if ((instr_count_i >= threshold_instret_q) && (threshold_instret_q != 'b0)) begin
         // TODO_INESC: Activate sampling mechanism
@@ -261,13 +264,13 @@ module perf_counters import ariane_pkg::*; #(
       end
     end
 
-    if (buffer_re) begin
-      sample_mem_d[buffer_rd_pointer_q].valid = 1'b0;
+    if (ebs_mem_re) begin
+      ebs_mem_d[ebs_mem_rd_ptr_q].valid = 1'b0;
     end
 
-    assign buffer_cnt_d = buffer_cnt_q - buffer_re + buffer_we;
-    assign buffer_rd_pointer_d = buffer_rd_pointer_q + buffer_re;
-    assign buffer_wr_pointer_d = buffer_wr_pointer_q + buffer_we;
+    assign ebs_mem_cnt_d = ebs_mem_cnt_q - ebs_mem_re + ebs_mem_we;
+    assign ebs_mem_rd_ptr_d = ebs_mem_rd_ptr_q + ebs_mem_re;
+    assign ebs_mem_wr_ptr_d = ebs_mem_wr_ptr_q + ebs_mem_we;
     
   end
 
@@ -280,10 +283,10 @@ module perf_counters import ariane_pkg::*; #(
             threshold_cyc_q     <= '{default:0};
             threshold_instret_q <= '{default:0};
             mmaped_addr_q       <= '{default:0};
-            sample_mem_q        <= '{default:ebs_mem_t'(0)};
-            buffer_wr_pointer_q <= '{default:0};
-            buffer_rd_pointer_q <= '{default:0};
-            buffer_cnt_q        <= '{default:0};
+            ebs_mem_q        <= '{default:ebs_mem_t'(0)};
+            ebs_mem_wr_ptr_q <= '{default:0};
+            ebs_mem_rd_ptr_q <= '{default:0};
+            ebs_mem_cnt_q        <= '{default:0};
             cycle_offset_q      <= '{default:0};
         end else begin
             generic_counter_q   <= generic_counter_d;
@@ -292,10 +295,10 @@ module perf_counters import ariane_pkg::*; #(
             threshold_cyc_q     <= threshold_cyc_d;
             threshold_instret_q <= threshold_instret_d;
             mmaped_addr_q       <= mmaped_addr_d;
-            sample_mem_q        <= sample_mem_d;
-            buffer_wr_pointer_q <= buffer_wr_pointer_d;
-            buffer_rd_pointer_q <= buffer_rd_pointer_d;
-            buffer_cnt_q        <= buffer_cnt_d;
+            ebs_mem_q        <= ebs_mem_d;
+            ebs_mem_wr_ptr_q <= ebs_mem_wr_ptr_d;
+            ebs_mem_rd_ptr_q <= ebs_mem_rd_ptr_d;
+            ebs_mem_cnt_q        <= ebs_mem_cnt_d;
             cycle_offset_q      <= cycle_offset_d;
        end
    end
