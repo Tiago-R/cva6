@@ -711,6 +711,33 @@ package ariane_pkg;
     // -------------------
     localparam bit PERF_COUNTER_EN = cva6_config_pkg::CVA6ConfigPerfCounterEn;
     localparam int unsigned MHPMCounterNum = 6;
+    typedef enum logic [4:0] {
+        NO_EVENT                = 5'b00000,
+        L1_ICACHE_MISS          = 5'b00001,
+        L1_DCACHE_MISS          = 5'b00010,
+        ITLB_MISS               = 5'b00011,
+        DTLB_MISS               = 5'b00100,
+        LOAD_ACCESS             = 5'b00101,
+        STORE_ACCESS            = 5'b00110,
+        EXCEPTIONS              = 5'b00111,
+        EXCEPTION_RET           = 5'b01000,
+        BRANCHES_INSTR          = 5'b01001,
+        BRANCH_MISS_PREDICTS    = 5'b01010,
+        BRANCH_EXCEPTIONS       = 5'b01011,
+        SYS_CALL                = 5'b01100,
+        RETURN                  = 5'b01101,
+        MSB_FULL                = 5'b01110,
+        IFETCH_EMPTY            = 5'b01111,
+        L1_ICACHE_ACCESS        = 5'b10000,
+        L1_DCACHE_ACCESS        = 5'b10001,
+        EVICTION                = 5'b10010,
+        ITLB_FLUSH              = 5'b10011,
+        INT_INSTR               = 5'b10100,
+        FP_INSTR                = 5'b10101,
+        PIPELINE_BUBBLE         = 5'b10110,
+        CYCLE                   = 5'b11110,
+        INSTRET                 = 5'b11111
+    } sample_event_t; // Encodes the event type that triggered the event-based sample
 
     // --------------------
     // Atomics
