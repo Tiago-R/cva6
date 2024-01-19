@@ -86,6 +86,7 @@ module csr_regfile import ariane_pkg::*; #(
     output logic                  perf_we_o,
     output logic[63:0]            perf_cyc_count_o,           // Cycle count to performance counter module
     output logic[63:0]            perf_instret_count_o,       // Instret count to performance counter module
+    input  logic                  perf_irq_i,                 // Interrupt request to store event-based sampling buffer to memory
 
     // PMPs
     output riscv::pmpcfg_t [15:0] pmpcfg_o,   // PMP configuration containing pmpcfg for max 16 PMPs
@@ -746,7 +747,7 @@ module csr_regfile import ariane_pkg::*; #(
                 end
                 // mask the register so that unsupported interrupts can never be set
                 riscv::CSR_MIE: begin
-                    mask = riscv::MIP_SSIP | riscv::MIP_STIP | riscv::MIP_SEIP | riscv::MIP_MSIP | riscv::MIP_MTIP | riscv::MIP_MEIP;
+                    mask = riscv::MIP_SSIP | riscv::MIP_STIP | riscv::MIP_SEIP | riscv::MIP_MSIP | riscv::MIP_MTIP | riscv::MIP_MEIP | riscv::MIP_MPIP;
                     mie_d = (mie_q & ~mask) | (csr_wdata & mask); // we only support supervisor and M-mode interrupts
                 end
 
@@ -1001,6 +1002,8 @@ module csr_regfile import ariane_pkg::*; #(
         mip_d[riscv::IRQ_M_SOFT] = ipi_i;
         // Timer interrupt pending, coming from platform timer
         mip_d[riscv::IRQ_M_TIMER] = time_irq_i;
+        // Machine Performance Interrupt Pending, comming from perf_counters
+        mip_d[riscv::IRQ_M_PERF] = perf_irq_i;
 
         // -----------------------
         // Manage Exception Stack

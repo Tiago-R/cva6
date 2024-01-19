@@ -210,6 +210,7 @@ module cva6 import ariane_pkg::*; #(
   logic                     icache_miss_cache_perf;
   logic [NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
   logic                     stall_issue;
+  logic                     perf_irq;
   // --------------
   // CTRL <-> *
   // --------------
@@ -605,6 +606,7 @@ module cva6 import ariane_pkg::*; #(
     .perf_we_o              ( we_csr_perf                   ),
     .perf_cyc_count_o       ( cycle_count_csr_perf          ),
     .perf_instret_count_o   ( instret_count_csr_perf        ),
+    .perf_irq_i             ( perf_irq                      ),
     .pmpcfg_o               ( pmpcfg                        ),
     .pmpaddr_o              ( pmpaddr                       ),
     .mcountinhibit_o        ( mcountinhibit_csr_perf        ),
@@ -650,7 +652,8 @@ module cva6 import ariane_pkg::*; #(
     .cycle_count_i       ( cycle_count_csr_perf      ),
     .instr_count_i       ( instret_count_csr_perf    ),
     .mcountinhibit_i     ( mcountinhibit_csr_perf    ),
-    .pc_i                ( pc_commit                 )
+    .pc_i                ( pc_commit                 ),
+    .perf_irq_o          ( perf_irq                  )
   );
  end
 

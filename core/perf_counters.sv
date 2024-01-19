@@ -53,7 +53,8 @@ module perf_counters import ariane_pkg::*; #(
   input  logic [63:0]                             instr_count_i,
 
   input  logic[31:0]                              mcountinhibit_i,
-  input  logic [riscv::VLEN-1:0]                  pc_i
+  input  logic [riscv::VLEN-1:0]                  pc_i,
+  output logic                                    perf_irq_o
 );
   // fifo to store event-based samples
   localparam int unsigned NR_ENTRIES = 8;
@@ -240,6 +241,8 @@ module perf_counters import ariane_pkg::*; #(
 
     count_offset_d = count_offset_q;
 
+    perf_irq_o = 1'b0;
+
     if (!ebs_mem_full) begin
       if ((cycle_count_i >= threshold_q[0] + count_offset_q[0]) && (threshold_q[0] != 'b0)) begin
         ebs_mem_we = 1'b1;
@@ -276,7 +279,11 @@ module perf_counters import ariane_pkg::*; #(
     assign ebs_mem_cnt_d = ebs_mem_cnt_q - ebs_mem_re + ebs_mem_we;
     assign ebs_mem_rd_ptr_d = ebs_mem_rd_ptr_q + ebs_mem_re;
     assign ebs_mem_wr_ptr_d = ebs_mem_wr_ptr_q + ebs_mem_we;
-    
+
+    if (ebs_mem_cnt_q >= $ceil(0.75*NR_ENTRIES)) begin
+      perf_irq_o = 1'b1;
+    end
+
   end
 
 //Registers

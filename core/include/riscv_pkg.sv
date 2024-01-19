@@ -325,6 +325,7 @@ package riscv;
     localparam int unsigned IRQ_M_TIMER = 7;
     localparam int unsigned IRQ_S_EXT   = 9;
     localparam int unsigned IRQ_M_EXT   = 11;
+    localparam int unsigned IRQ_M_PERF  = 16; // Event-based Sample
 
     localparam logic [XLEN-1:0] MIP_SSIP = 1 << IRQ_S_SOFT;
     localparam logic [XLEN-1:0] MIP_MSIP = 1 << IRQ_M_SOFT;
@@ -332,6 +333,7 @@ package riscv;
     localparam logic [XLEN-1:0] MIP_MTIP = 1 << IRQ_M_TIMER;
     localparam logic [XLEN-1:0] MIP_SEIP = 1 << IRQ_S_EXT;
     localparam logic [XLEN-1:0] MIP_MEIP = 1 << IRQ_M_EXT;
+    localparam logic [XLEN-1:0] MIP_MPIP = 1 << IRQ_M_PERF;
 
     localparam logic [XLEN-1:0] S_SW_INTERRUPT    = (1 << (XLEN-1)) | XLEN'(IRQ_S_SOFT);
     localparam logic [XLEN-1:0] M_SW_INTERRUPT    = (1 << (XLEN-1)) | XLEN'(IRQ_M_SOFT);
@@ -339,6 +341,7 @@ package riscv;
     localparam logic [XLEN-1:0] M_TIMER_INTERRUPT = (1 << (XLEN-1)) | XLEN'(IRQ_M_TIMER);
     localparam logic [XLEN-1:0] S_EXT_INTERRUPT   = (1 << (XLEN-1)) | XLEN'(IRQ_S_EXT);
     localparam logic [XLEN-1:0] M_EXT_INTERRUPT   = (1 << (XLEN-1)) | XLEN'(IRQ_M_EXT);
+    localparam logic [XLEN-1:0] M_PERF_INTERRUPT  = (1 << (XLEN-1)) | XLEN'(IRQ_M_PERF);
 
     // -----
     // CSRs
