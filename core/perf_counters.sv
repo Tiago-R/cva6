@@ -64,7 +64,7 @@ module perf_counters import ariane_pkg::*; #(
     ariane_pkg::sample_event_t  sampled_event;
     logic [riscv::VLEN-1:0] pc;
   } ebs_mem_t;
-  
+
   ebs_mem_t [NR_ENTRIES-1:0]  ebs_mem_q, ebs_mem_d;
   logic                       ebs_mem_full, ebs_mem_empty, ebs_mem_we, ebs_mem_re;
   logic [BITS_ENTRIES:0]      ebs_mem_cnt_q, ebs_mem_cnt_d;
@@ -229,7 +229,7 @@ module perf_counters import ariane_pkg::*; #(
         endcase
       end
     end
-    
+
   // ----------------------
   // Perf Event-Based Sampling Control
   // ----------------------
@@ -241,21 +241,29 @@ module perf_counters import ariane_pkg::*; #(
     count_offset_d = count_offset_q;
 
     if (!ebs_mem_full) begin
-      if ((cycle_count_i >= threshold_cyc_q + cycle_offset_q) && (threshold_cyc_q != 'b0)) begin
-        // TODO_INESC: Activate sampling mechanism
-        // ebs_ctrl_o.sample_source = 'b1; // No event_code needed because counter 0 is the fixed cycle counter
-        // ebs_ctrl_o.valid = 'b1;
+      if ((cycle_count_i >= threshold_q[0] + count_offset_q[0]) && (threshold_q[0] != 'b0)) begin
         ebs_mem_we = 1'b1;
         ebs_mem_d[ebs_mem_wr_ptr_q] = {1'b1,              // valid
                                        ariane_pkg::CYCLE, // sampled event type
                                        pc_i};             // sampled pc
-        cycle_offset_d = cycle_count_i;
-      end else if ((instr_count_i >= threshold_instret_q) && (threshold_instret_q != 'b0)) begin
-        // TODO_INESC: Activate sampling mechanism
+        count_offset_d[0] = cycle_count_i;
+
+      end else if ((instr_count_i >= threshold_q[1] + count_offset_q[1]) && (threshold_q[1] != 'b0)) begin
+        ebs_mem_we = 1'b1;
+        ebs_mem_d[ebs_mem_wr_ptr_q] = {1'b1,                // valid
+                                       ariane_pkg::INSTRET, // sampled event type
+                                       pc_i};               // sampled pc
+        count_offset_d[1] = instr_count_i;
+
       end else begin
-        for (int unsigned i = 1; i <= 6; i++) begin
-          if (generic_counter_q[i] >= threshold_q[i] && threshold_q[i] != 'b0) begin
-          // TODO_INESC: Activate sampling mechanism
+        for (int unsigned i = 2; i <= 7; i++) begin
+          if (generic_counter_q[i-1] >= threshold_q[i] + count_offset_q[i] && threshold_q[i] != 'b0) begin
+            ebs_mem_we = 1'b1;
+            ebs_mem_d[ebs_mem_wr_ptr_q] = {1'b1,              // valid
+                                           mhpmevent_q[i-1],  // sampled event type
+                                           pc_i};             // sampled pc
+            count_offset_d[i] = generic_counter_q[i-1];
+
           end
         end
       end
