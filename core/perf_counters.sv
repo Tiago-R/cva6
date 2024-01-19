@@ -84,14 +84,11 @@ module perf_counters import ariane_pkg::*; #(
   logic [4:0] mhpmevent_q[6:1];
 
   //internal signals for threshold configuration
-  logic [63:0] threshold_cyc_d;
-  logic [63:0] threshold_cyc_q;
-  logic [63:0] cycle_offset_d;
-  logic [63:0] cycle_offset_q;
-  logic [63:0] threshold_instret_d;
-  logic [63:0] threshold_instret_q;
-  logic [63:0] threshold_d[6:1];
-  logic [63:0] threshold_q[6:1];
+  logic [63:0] threshold_d[7:0];
+  logic [63:0] threshold_q[7:0];
+  logic [63:0] count_offset_d[7:0];
+  logic [63:0] count_offset_q[7:0];
+
   logic [63:0] mmaped_addr_d;
   logic [63:0] mmaped_addr_q;
 
@@ -137,8 +134,7 @@ module perf_counters import ariane_pkg::*; #(
         data_o = 'b0;
         mhpmevent_d = mhpmevent_q;
         threshold_d = threshold_q;
-        threshold_cyc_d = threshold_cyc_q;
-        threshold_instret_d = threshold_instret_q;
+        count_offset_d = count_offset_q;
         mmaped_addr_d = mmaped_addr_q;
 	    read_access_exception =  1'b0;
 	    update_access_exception =  1'b0;
@@ -170,22 +166,22 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   : data_o = mhpmevent_q[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] ;
-            riscv::CSR_MHPM_THRESHOLD_CYC : begin if (riscv::XLEN == 32) data_o = threshold_cyc_q[31:0]; else data_o = threshold_cyc_q; end
-            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin if (riscv::XLEN == 32) data_o = threshold_instret_q[31:0]; else data_o = threshold_instret_q; end
+            riscv::CSR_MHPM_THRESHOLD_CYC : begin if (riscv::XLEN == 32) data_o = threshold_q[0][31:0]; else data_o = threshold_q[0]; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin if (riscv::XLEN == 32) data_o = threshold_q[1][31:0]; else data_o = threshold_q[1]; end
             riscv::CSR_MHPM_THRESHOLD_3,
             riscv::CSR_MHPM_THRESHOLD_4,
             riscv::CSR_MHPM_THRESHOLD_5,
             riscv::CSR_MHPM_THRESHOLD_6,
             riscv::CSR_MHPM_THRESHOLD_7,
-            riscv::CSR_MHPM_THRESHOLD_8 : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0]; else data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1];end
-            riscv::CSR_MHPM_THRESHOLD_CYCH : begin if (riscv::XLEN == 32) data_o = threshold_cyc_q[63:32]; else read_access_exception = 1'b1; end
-            riscv::CSR_MHPM_THRESHOLD_INSTRETH : begin if (riscv::XLEN == 32) data_o = threshold_instret_q[63:32]; else read_access_exception = 1'b1; end
+            riscv::CSR_MHPM_THRESHOLD_8 : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 2][31:0]; else data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 2];end
+            riscv::CSR_MHPM_THRESHOLD_CYCH : begin if (riscv::XLEN == 32) data_o = threshold_q[0][63:32]; else read_access_exception = 1'b1; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRETH : begin if (riscv::XLEN == 32) data_o = threshold_q[1][63:32]; else read_access_exception = 1'b1; end
             riscv::CSR_MHPM_THRESHOLD_3H,
             riscv::CSR_MHPM_THRESHOLD_4H,
             riscv::CSR_MHPM_THRESHOLD_5H,
             riscv::CSR_MHPM_THRESHOLD_6H,
             riscv::CSR_MHPM_THRESHOLD_7H,
-            riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32]; else read_access_exception = 1'b1;end
+            riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 2][63:32]; else read_access_exception = 1'b1;end
             riscv::CSR_MHPM_MMAPED_3 : begin data_o = mmaped_addr_q; end
             default: data_o = 'b0;
         endcase
@@ -211,22 +207,22 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_EVENT_6,
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   :begin mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = data_i; generic_counter_d[addr_i-riscv::CSR_MHPM_EVENT_3 + 1] = 'b0;end
-            riscv::CSR_MHPM_THRESHOLD_CYC : begin if (riscv::XLEN == 32) threshold_cyc_d[31:0] = data_i; else threshold_cyc_d = data_i; end
-            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin if (riscv::XLEN == 32) threshold_instret_d[31:0] = data_i; else threshold_instret_d = data_i; end
+            riscv::CSR_MHPM_THRESHOLD_CYC : begin if (riscv::XLEN == 32) threshold_d[0][31:0] = data_i; else threshold_d[0] = data_i; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRET : begin if (riscv::XLEN == 32) threshold_d[1][31:0] = data_i; else threshold_d[1] = data_i; end
             riscv::CSR_MHPM_THRESHOLD_3,
             riscv::CSR_MHPM_THRESHOLD_4,
             riscv::CSR_MHPM_THRESHOLD_5,
             riscv::CSR_MHPM_THRESHOLD_6,
             riscv::CSR_MHPM_THRESHOLD_7,
             riscv::CSR_MHPM_THRESHOLD_8 : begin if (riscv::XLEN == 32) threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0] = data_i; else threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1] = data_i; end
-            riscv::CSR_MHPM_THRESHOLD_CYCH : begin if (riscv::XLEN == 32) threshold_cyc_d[63:32] = data_i; else update_access_exception = 1'b1; end
-            riscv::CSR_MHPM_THRESHOLD_INSTRETH : begin if (riscv::XLEN == 32) threshold_instret_d[63:32] = data_i; else update_access_exception = 1'b1; end
+            riscv::CSR_MHPM_THRESHOLD_CYCH : begin if (riscv::XLEN == 32) threshold_d[0][63:32] = data_i; else update_access_exception = 1'b1; end
+            riscv::CSR_MHPM_THRESHOLD_INSTRETH : begin if (riscv::XLEN == 32) threshold_d[1][63:32] = data_i; else update_access_exception = 1'b1; end
             riscv::CSR_MHPM_THRESHOLD_3H,
             riscv::CSR_MHPM_THRESHOLD_4H,
             riscv::CSR_MHPM_THRESHOLD_5H,
             riscv::CSR_MHPM_THRESHOLD_6H,
             riscv::CSR_MHPM_THRESHOLD_7H,
-            riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32] = data_i; else update_access_exception = 1'b1;end
+            riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 2][63:32] = data_i; else update_access_exception = 1'b1;end
             riscv::CSR_MHPM_MMAPED_3  : begin mmaped_addr_d = data_i; end
 
             default: update_access_exception =  1'b1;
@@ -239,9 +235,10 @@ module perf_counters import ariane_pkg::*; #(
   // ----------------------
   always_comb begin: sample_buffer
     ebs_mem_d = ebs_mem_q;
-    cycle_offset_d = cycle_offset_q;
     ebs_mem_we = 1'b0;
     ebs_mem_re = 1'b0;
+
+    count_offset_d = count_offset_q;
 
     if (!ebs_mem_full) begin
       if ((cycle_count_i >= threshold_cyc_q + cycle_offset_q) && (threshold_cyc_q != 'b0)) begin
@@ -280,26 +277,22 @@ module perf_counters import ariane_pkg::*; #(
             generic_counter_q   <= '{default:0};
             mhpmevent_q         <= '{default:0};
             threshold_q         <= '{default:0};
-            threshold_cyc_q     <= '{default:0};
-            threshold_instret_q <= '{default:0};
+            count_offset_q      <= '{default:0};
             mmaped_addr_q       <= '{default:0};
-            ebs_mem_q        <= '{default:ebs_mem_t'(0)};
-            ebs_mem_wr_ptr_q <= '{default:0};
-            ebs_mem_rd_ptr_q <= '{default:0};
-            ebs_mem_cnt_q        <= '{default:0};
-            cycle_offset_q      <= '{default:0};
+            ebs_mem_q           <= '{default:ebs_mem_t'(0)};
+            ebs_mem_wr_ptr_q    <= '{default:0};
+            ebs_mem_rd_ptr_q    <= '{default:0};
+            ebs_mem_cnt_q       <= '{default:0};
         end else begin
             generic_counter_q   <= generic_counter_d;
             mhpmevent_q         <= mhpmevent_d;
             threshold_q         <= threshold_d;
-            threshold_cyc_q     <= threshold_cyc_d;
-            threshold_instret_q <= threshold_instret_d;
+            count_offset_q      <= count_offset_d;
             mmaped_addr_q       <= mmaped_addr_d;
-            ebs_mem_q        <= ebs_mem_d;
-            ebs_mem_wr_ptr_q <= ebs_mem_wr_ptr_d;
-            ebs_mem_rd_ptr_q <= ebs_mem_rd_ptr_d;
-            ebs_mem_cnt_q        <= ebs_mem_cnt_d;
-            cycle_offset_q      <= cycle_offset_d;
+            ebs_mem_q           <= ebs_mem_d;
+            ebs_mem_wr_ptr_q    <= ebs_mem_wr_ptr_d;
+            ebs_mem_rd_ptr_q    <= ebs_mem_rd_ptr_d;
+            ebs_mem_cnt_q       <= ebs_mem_cnt_d;
        end
    end
 
