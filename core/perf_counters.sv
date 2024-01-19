@@ -280,7 +280,7 @@ module perf_counters import ariane_pkg::*; #(
     ebs_mem_rd_ptr_d = ebs_mem_rd_ptr_q + ebs_mem_re;
     ebs_mem_wr_ptr_d = ebs_mem_wr_ptr_q + ebs_mem_we;
 
-    if (ebs_mem_cnt_q >= $ceil(0.75*NR_ENTRIES)) begin
+    if (ebs_mem_cnt_q >= 6) begin
       perf_irq_o = 1'b1;
     end
 
