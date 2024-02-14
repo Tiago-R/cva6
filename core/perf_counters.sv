@@ -184,6 +184,18 @@ module perf_counters import ariane_pkg::*; #(
             riscv::CSR_MHPM_THRESHOLD_7H,
             riscv::CSR_MHPM_THRESHOLD_8H : begin if (riscv::XLEN == 32) data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 2][63:32]; else read_access_exception = 1'b1;end
             riscv::CSR_MHPM_MMAPED_3 : begin data_o = mmaped_addr_q; end
+            riscv::CSR_HPM_COUNTER_3,
+            riscv::CSR_HPM_COUNTER_4,
+            riscv::CSR_HPM_COUNTER_5,
+            riscv::CSR_HPM_COUNTER_6,
+            riscv::CSR_HPM_COUNTER_7,
+            riscv::CSR_HPM_COUNTER_8 : begin if (riscv::XLEN == 32) data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3 + 1][31:0]; else data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3 + 1];end
+            riscv::CSR_HPM_COUNTER_3H,
+            riscv::CSR_HPM_COUNTER_4H,
+            riscv::CSR_HPM_COUNTER_5H,
+            riscv::CSR_HPM_COUNTER_6H,
+            riscv::CSR_HPM_COUNTER_7H,
+            riscv::CSR_HPM_COUNTER_8H : begin if (riscv::XLEN == 32) data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3H + 1][63:32]; else read_access_exception = 1'b1;end
             default: data_o = 'b0;
         endcase
 
