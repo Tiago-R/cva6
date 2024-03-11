@@ -387,13 +387,14 @@ module cva6
   riscv::xlen_t data_csr_perf, data_perf_csr;
   logic                                                                we_csr_perf;
 
-  logic                                                                icache_flush_ctrl_cache;
-  logic                                                                itlb_miss_ex_perf;
-  logic                                                                dtlb_miss_ex_perf;
-  logic                                                                dcache_miss_cache_perf;
-  logic                                                                icache_miss_cache_perf;
-  logic          [                 NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
-  logic                                                                stall_issue;
+  logic                                                     icache_flush_ctrl_cache;
+  logic                                                     itlb_miss_ex_perf;
+  logic                                                     dtlb_miss_ex_perf;
+  logic                                                     dcache_miss_cache_perf;
+  logic                                                     icache_miss_cache_perf;
+  logic             [   NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
+  logic                                                     stall_issue;
+  logic                                                     ebs_mem_flush;
   // --------------
   // CTRL <-> *
   // --------------
@@ -900,7 +901,11 @@ module cva6
         .miss_vld_bits_i    (miss_vld_bits),
         .i_tlb_flush_i      (flush_tlb_ctrl_ex),
         .stall_issue_i      (stall_issue),
-        .mcountinhibit_i    (mcountinhibit_csr_perf)
+        .cycle_count_i      (cycle_count_csr_perf),
+        .instr_count_i      (instret_count_csr_perf),
+        .pc_i               (pc_commit),
+        .mcountinhibit_i    (mcountinhibit_csr_perf),
+        .ebs_mem_flush_o    (ebs_mem_flush)
     );
   end : gen_perf_counter
   else begin : gen_no_perf_counter

@@ -521,6 +521,71 @@ package riscv;
     CSR_MHPM_COUNTER_29H = 12'hB9D,  // reserved
     CSR_MHPM_COUNTER_30H = 12'hB9E,  // reserved
     CSR_MHPM_COUNTER_31H = 12'hB9F,  // reserved
+    // PEBS-like extension
+    CSR_MHPM_THRESHOLD_CYC = 12'hB20,
+    CSR_MHPM_THRESHOLD_INSTRET = 12'hB22,
+    CSR_MHPM_THRESHOLD_3 = 12'hB23,
+    CSR_MHPM_THRESHOLD_4 = 12'hB24,
+    CSR_MHPM_THRESHOLD_5 = 12'hB25,
+    CSR_MHPM_THRESHOLD_6 = 12'hB26,
+    CSR_MHPM_THRESHOLD_7 = 12'hB27,
+    CSR_MHPM_THRESHOLD_8 = 12'hB28,
+    CSR_MHPM_THRESHOLD_9 = 12'hB29,   // reserved
+    CSR_MHPM_THRESHOLD_10 = 12'hB2A,  // reserved
+    CSR_MHPM_THRESHOLD_11 = 12'hB2B,  // reserved
+    CSR_MHPM_THRESHOLD_12 = 12'hB2C,  // reserved
+    CSR_MHPM_THRESHOLD_13 = 12'hB2D,  // reserved
+    CSR_MHPM_THRESHOLD_14 = 12'hB2E,  // reserved
+    CSR_MHPM_THRESHOLD_15 = 12'hB2F,  // reserved
+    CSR_MHPM_THRESHOLD_16 = 12'hB30,  // reserved
+    CSR_MHPM_THRESHOLD_17 = 12'hB31,  // reserved
+    CSR_MHPM_THRESHOLD_18 = 12'hB32,  // reserved
+    CSR_MHPM_THRESHOLD_19 = 12'hB33,  // reserved
+    CSR_MHPM_THRESHOLD_20 = 12'hB34,  // reserved
+    CSR_MHPM_THRESHOLD_21 = 12'hB35,  // reserved
+    CSR_MHPM_THRESHOLD_22 = 12'hB36,  // reserved
+    CSR_MHPM_THRESHOLD_23 = 12'hB37,  // reserved
+    CSR_MHPM_THRESHOLD_24 = 12'hB38,  // reserved
+    CSR_MHPM_THRESHOLD_25 = 12'hB39,  // reserved
+    CSR_MHPM_THRESHOLD_26 = 12'hB3A,  // reserved
+    CSR_MHPM_THRESHOLD_27 = 12'hB3B,  // reserved
+    CSR_MHPM_THRESHOLD_28 = 12'hB3C,  // reserved
+    CSR_MHPM_THRESHOLD_29 = 12'hB3D,  // reserved
+    CSR_MHPM_THRESHOLD_30 = 12'hB3E,  // reserved
+    CSR_MHPM_THRESHOLD_31 = 12'hB3F,  // reserved
+    CSR_MHPM_THRESHOLD_CYCH = 12'hBA0,
+    CSR_MHPM_THRESHOLD_INSTRETH = 12'hBA2,
+    CSR_MHPM_THRESHOLD_3H = 12'hBA3,
+    CSR_MHPM_THRESHOLD_4H = 12'hBA4,
+    CSR_MHPM_THRESHOLD_5H = 12'hBA5,
+    CSR_MHPM_THRESHOLD_6H = 12'hBA6,
+    CSR_MHPM_THRESHOLD_7H = 12'hBA7,
+    CSR_MHPM_THRESHOLD_8H = 12'hBA8,
+    CSR_MHPM_THRESHOLD_9H = 12'hBA9,   // reserved
+    CSR_MHPM_THRESHOLD_10H = 12'hBAA,  // reserved
+    CSR_MHPM_THRESHOLD_11H = 12'hBAB,  // reserved
+    CSR_MHPM_THRESHOLD_12H = 12'hBAC,  // reserved
+    CSR_MHPM_THRESHOLD_13H = 12'hBAD,  // reserved
+    CSR_MHPM_THRESHOLD_14H = 12'hBAE,  // reserved
+    CSR_MHPM_THRESHOLD_15H = 12'hBAF,  // reserved
+    CSR_MHPM_THRESHOLD_16H = 12'hBB0,  // reserved
+    CSR_MHPM_THRESHOLD_17H = 12'hBB1,  // reserved
+    CSR_MHPM_THRESHOLD_18H = 12'hBB2,  // reserved
+    CSR_MHPM_THRESHOLD_19H = 12'hBB3,  // reserved
+    CSR_MHPM_THRESHOLD_20H = 12'hBB4,  // reserved
+    CSR_MHPM_THRESHOLD_21H = 12'hBB5,  // reserved
+    CSR_MHPM_THRESHOLD_22H = 12'hBB6,  // reserved
+    CSR_MHPM_THRESHOLD_23H = 12'hBB7,  // reserved
+    CSR_MHPM_THRESHOLD_24H = 12'hBB8,  // reserved
+    CSR_MHPM_THRESHOLD_25H = 12'hBB9,  // reserved
+    CSR_MHPM_THRESHOLD_26H = 12'hBBA,  // reserved
+    CSR_MHPM_THRESHOLD_27H = 12'hBBB,  // reserved
+    CSR_MHPM_THRESHOLD_28H = 12'hBBC,  // reserved
+    CSR_MHPM_THRESHOLD_29H = 12'hBBD,  // reserved
+    CSR_MHPM_THRESHOLD_30H = 12'hBBE,  // reserved
+    CSR_MHPM_THRESHOLD_31H = 12'hBBF,  // reserved
+    CSR_MHPM_MMAPED_3 = 12'hBC0,
+    CSR_MHPM_EBS_CFG = 12'hBC1,
     // Cache Control (platform specifc)
     CSR_DCACHE           = 12'h7C1,
     CSR_ICACHE           = 12'h7C0,
@@ -668,6 +733,39 @@ package riscv;
     logic [2:0]   frm;       // float rounding mode
     logic [4:0]   fflags;    // float exception flags
   } fcsr_t;
+
+  // Performance Counters - Event-based sampling configuration register
+  typedef struct packed {
+      logic [31:23]   reserved;   // reserved for other sampling options
+      logic           sip;        // supervisor interrupt-pending csr
+      logic           stval;      // supervisor trap value csr
+      logic           scause;     // supervisor cause csr
+      logic           sepc;       // supervisor exception program counter csr
+      logic           sscratch;   // supervisor scratch csr
+      logic           mip;        // machine interrupt-pending csr
+      logic           mtval;      // machine trap value csr
+      logic           mcause;     // machine cause csr
+      logic           mepc;       // machine exception program counter csr
+      logic           mscratch;   // machine scratch csr
+      logic           a7;         // function argument 7
+      logic           a6;         // function argument 6
+      logic           a5;         // function argument 5
+      logic           a4;         // function argument 4
+      logic           a3;         // function argument 3
+      logic           a2;         // function argument 2
+      logic           a1;         // function argument 1 / return value 1
+      logic           a0;         // function argument 0 / return value 0
+      logic           tp;         // thread pointer
+      logic           gp;         // global pointer
+      logic           sp;         // stack pointer
+      logic           ra;         // return address
+      logic           pc;         // program counter
+  } ebs_sample_opt_t;
+
+  typedef struct packed {
+      logic [63:32]   options;
+      logic [31:0]    active_counters;
+  } ebs_sample_cfg_t;
 
   // PMP
   typedef enum logic [1:0] {
