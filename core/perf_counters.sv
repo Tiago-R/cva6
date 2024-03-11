@@ -59,18 +59,23 @@ module perf_counters
     input logic stall_issue_i,  //stall-read operands
     input  logic [63:0] cycle_count_i,
     input  logic [63:0] instr_count_i,
-    input logic [31:0] mcountinhibit_i
+    input logic [31:0] mcountinhibit_i,
+    input  logic [riscv::VLEN-1:0] pc_i,
+    output logic ebs_mem_flush_o
 );
   // fifo to store event-based samples
-  localparam int unsigned NR_ENTRIES = 8;
+  localparam int unsigned NR_ENTRIES = 128;
   localparam int unsigned BITS_ENTRIES = $clog2(NR_ENTRIES);
 
   typedef struct packed {
     logic                   valid;
-    ariane_pkg::sample_event_t  sampled_event;
-    logic [riscv::VLEN-1:0] pc;
+    logic [riscv::VLEN-1:0] data;
   } ebs_mem_t;
 
+  ebs_sample_cfg_t            ebs_sample_cfg_d, ebs_sample_cfg_q;
+  logic                       ebs_sample_trigger_d, ebs_sample_trigger_q;
+  ariane_pkg::sample_event_t  ebs_sampled_event;
+  int unsigned                ebs_sample_index_d, ebs_sample_index_q;
   ebs_mem_t [NR_ENTRIES-1:0]  ebs_mem_q, ebs_mem_d;
   logic                       ebs_mem_full, ebs_mem_empty, ebs_mem_we, ebs_mem_re;
   logic [BITS_ENTRIES:0]      ebs_mem_cnt_q, ebs_mem_cnt_d;
@@ -80,6 +85,15 @@ module perf_counters
 
   logic [63:0] generic_counter_d[6:1];
   logic [63:0] generic_counter_q[6:1];
+
+  logic [63:0] ebs_count[8:0];
+  logic [63:0] ebs_count_sample_d[8:0];
+  logic [63:0] ebs_count_sample_q[8:0];
+  assign ebs_count = {generic_counter_q, instr_count_i, 64'b0, cycle_count_i};
+
+  logic [63:0] ebs_opt[31:0];
+  logic [63:0] ebs_opt_sample_d[31:0];
+  logic [63:0] ebs_opt_sample_q[31:0];
 
   //internal signal to keep track of exception
   logic read_access_exception, update_access_exception;
@@ -98,10 +112,10 @@ module perf_counters
   logic [CVA6Cfg.NrCommitPorts-1:0] fp_event;
 
   //internal signals for threshold configuration
-  logic [63:0] threshold_d[7:0];
-  logic [63:0] threshold_q[7:0];
-  logic [63:0] count_offset_d[7:0];
-  logic [63:0] count_offset_q[7:0];
+  logic [63:0] threshold_d[8:0];
+  logic [63:0] threshold_q[8:0];
+  logic [63:0] count_offset_d[8:0];
+  logic [63:0] count_offset_q[8:0];
 
   logic [63:0] mmaped_addr_d;
   logic [63:0] mmaped_addr_q;
@@ -169,6 +183,7 @@ module perf_counters
     mhpmevent_d = mhpmevent_q;
     threshold_d = threshold_q;
     mmaped_addr_d = mmaped_addr_q;
+    ebs_sample_cfg_d = ebs_sample_cfg_q;
     read_access_exception = 1'b0;
     update_access_exception = 1'b0;
 
@@ -209,48 +224,29 @@ module perf_counters
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   :
       data_o = mhpmevent_q[addr_i-riscv::CSR_MHPM_EVENT_3+1];
-      riscv::CSR_MHPM_THRESHOLD_CYC :begin
-        if (riscv::XLEN == 32)
-          data_o = threshold_q[0][31:0];
-        else data_o = threshold_q[0];
-      end
-      riscv::CSR_MHPM_THRESHOLD_INSTRET :begin
-        if (riscv::XLEN == 32)
-          data_o = threshold_q[1][31:0];
-        else data_o = threshold_q[1];
-      end
-      riscv::CSR_MHPM_THRESHOLD_3,
+      riscv::CSR_MHPM_THRESHOLD_CYC,
+            riscv::CSR_MHPM_THRESHOLD_INSTRET,
+            riscv::CSR_MHPM_THRESHOLD_3,
             riscv::CSR_MHPM_THRESHOLD_4,
             riscv::CSR_MHPM_THRESHOLD_5,
             riscv::CSR_MHPM_THRESHOLD_6,
             riscv::CSR_MHPM_THRESHOLD_7,
             riscv::CSR_MHPM_THRESHOLD_8 :begin
         if (riscv::XLEN == 32)
-          data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0];
-        else data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1];
+          data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_CYC][31:0];
+        else data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_CYC];
       end
-      riscv::CSR_MHPM_THRESHOLD_CYCH :begin
-        if (riscv::XLEN == 32)
-          data_o = threshold_q[0][63:32];
-        else read_access_exception = 1'b1;
-      end
-      riscv::CSR_MHPM_THRESHOLD_INSTRETH :begin
-        if (riscv::XLEN == 32)
-          data_o = threshold_q[1][63:32];
-        else read_access_exception = 1'b1;
-      end
-      riscv::CSR_MHPM_THRESHOLD_3H,
+      riscv::CSR_MHPM_THRESHOLD_CYCH,
+            riscv::CSR_MHPM_THRESHOLD_INSTRETH,
+            riscv::CSR_MHPM_THRESHOLD_3H,
             riscv::CSR_MHPM_THRESHOLD_4H,
             riscv::CSR_MHPM_THRESHOLD_5H,
             riscv::CSR_MHPM_THRESHOLD_6H,
             riscv::CSR_MHPM_THRESHOLD_7H,
             riscv::CSR_MHPM_THRESHOLD_8H :begin
         if (riscv::XLEN == 32)
-          data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32];
+          data_o = threshold_q[addr_i-riscv::CSR_MHPM_THRESHOLD_CYCH][63:32];
         else read_access_exception = 1'b1;
-      end
-      riscv::CSR_MHPM_MMAPED_3 :begin
-        data_o = mmaped_addr_q;
       end
       riscv::CSR_HPM_COUNTER_3,
             riscv::CSR_HPM_COUNTER_4,
@@ -271,6 +267,10 @@ module perf_counters
           data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3H+1][63:32];
         else read_access_exception = 1'b1;
       end
+      riscv::CSR_MHPM_MMAPED_3 :
+      data_o = mmaped_addr_q;
+      riscv::CSR_MHPM_EBS_CFG :
+      data_o = ebs_sample_cfg_q;
       default: data_o = 'b0;
     endcase
 
@@ -304,63 +304,91 @@ module perf_counters
             riscv::CSR_MHPM_EVENT_7,
             riscv::CSR_MHPM_EVENT_8   :
         mhpmevent_d[addr_i-riscv::CSR_MHPM_EVENT_3+1] = data_i;
-        riscv::CSR_MHPM_THRESHOLD_CYC :begin
-          if (riscv::XLEN == 32)
-            threshold_d[0][31:0] = data_i;
-          else threshold_d[0] = data_i;
-        end
-        riscv::CSR_MHPM_THRESHOLD_INSTRET :begin
-          if (riscv::XLEN == 32)
-            threshold_d[1][31:0] = data_i;
-          else threshold_d[1] = data_i;
-        end
-        riscv::CSR_MHPM_THRESHOLD_3,
+        riscv::CSR_MHPM_THRESHOLD_CYC,
+            riscv::CSR_MHPM_THRESHOLD_INSTRET,
+            riscv::CSR_MHPM_THRESHOLD_3,
             riscv::CSR_MHPM_THRESHOLD_4,
             riscv::CSR_MHPM_THRESHOLD_5,
             riscv::CSR_MHPM_THRESHOLD_6,
             riscv::CSR_MHPM_THRESHOLD_7,
             riscv::CSR_MHPM_THRESHOLD_8 :begin
           if (riscv::XLEN == 32)
-            threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1][31:0] = data_i;
-          else threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3 + 1] = data_i;
+            threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_CYC][31:0] = data_i;
+          else threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_CYC] = data_i;
         end
-        riscv::CSR_MHPM_THRESHOLD_CYCH :begin
-          if (riscv::XLEN == 32)
-            threshold_d[0][63:32] = data_i;
-          else update_access_exception = 1'b1;
-        end
-        riscv::CSR_MHPM_THRESHOLD_INSTRETH :begin
-          if (riscv::XLEN == 32)
-            threshold_d[1][63:32] = data_i;
-          else update_access_exception = 1'b1;
-        end
-        riscv::CSR_MHPM_THRESHOLD_3H,
+        riscv::CSR_MHPM_THRESHOLD_CYCH,
+            riscv::CSR_MHPM_THRESHOLD_INSTRETH,
+            riscv::CSR_MHPM_THRESHOLD_3H,
             riscv::CSR_MHPM_THRESHOLD_4H,
             riscv::CSR_MHPM_THRESHOLD_5H,
             riscv::CSR_MHPM_THRESHOLD_6H,
             riscv::CSR_MHPM_THRESHOLD_7H,
             riscv::CSR_MHPM_THRESHOLD_8H :begin
           if (riscv::XLEN == 32)
-            threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_3H + 1][63:32] = data_i;
+            threshold_d[addr_i-riscv::CSR_MHPM_THRESHOLD_CYCH][63:32] = data_i;
           else update_access_exception = 1'b1;
         end
-        riscv::CSR_MHPM_MMAPED_3 :begin
-            mmaped_addr_d = data_i;
-        end
+        riscv::CSR_MHPM_MMAPED_3 :
+        mmaped_addr_d = data_i;
+        riscv::CSR_MHPM_EBS_CFG :
+        ebs_sample_cfg_d = data_i;
         default: update_access_exception = 1'b1;
       endcase
     end
+  end
 
-    if (ebs_mem_re) begin
-      ebs_mem_d[ebs_mem_rd_ptr_q].valid = 1'b0;
+  // ----------------------
+  // Perf Event-Based Sampling Control
+  // ----------------------
+  always_comb begin: ebs
+    ebs_sample_trigger_d = ebs_sample_trigger_q;
+    count_offset_d = count_offset_q;
+    ebs_sample_index_d = ebs_sample_index_q;
+    ebs_count_sample_d = ebs_count_sample_q;
+    ebs_opt_sample_d = ebs_opt_sample_q;
+    ebs_mem_d = ebs_mem_q;
+    ebs_mem_cnt_d = ebs_mem_cnt_q;
+    ebs_mem_we = 1'b0;
+    ebs_mem_re = 1'b0;
+
+    // Trigger event-based sample mechanism
+    if (!ebs_sample_trigger_q) begin
+      for(int unsigned i = 0; i <= 8; i++) begin
+        if ((ebs_count[i] >= threshold_q[i] + count_offset_q[i]) && (threshold_q[i] != 64'b0)) begin
+          ebs_sample_trigger_d = 1'b1;
+          count_offset_d[i] = ebs_count[i];
+        end
+      end
+      ebs_count_sample_d = ebs_count;
+      ebs_opt_sample_d = ebs_opt;
     end
 
-    ebs_mem_cnt_d = ebs_mem_cnt_q - ebs_mem_re + ebs_mem_we;
-    ebs_mem_rd_ptr_d = ebs_mem_rd_ptr_q + ebs_mem_re;
-    ebs_mem_wr_ptr_d = ebs_mem_wr_ptr_q + ebs_mem_we;
+    // TODO_INESC: sampling cycle until all data is saved
+    if (ebs_sample_trigger_q) begin
+      if (ebs_sample_cfg_q[ebs_sample_index_q]) begin
+        if (ebs_sample_index_q > 31) begin // sample active option signals
+          ebs_mem_d[ebs_mem_wr_ptr_q] = { 1'b1,                                           // valid
+                                          ebs_opt_sample_q[ebs_sample_index_q - 6'd32]};  // sampled optional signal
+          ebs_mem_we = 1'b1;
+        end else begin // sample active counters count
+          ebs_mem_d[ebs_mem_wr_ptr_q] = { 1'b1,                                     // valid
+                                          ebs_count_sample_q[ebs_sample_index_q]};  // sampled counter count
+          ebs_mem_we = 1'b1;
+        end
+      end
+      ebs_sample_index_d = ebs_sample_index_q + 1'b1;
+      if (ebs_sample_index_q == 6'd63) begin
+        ebs_sample_trigger_d = 1'b0;
+      end
 
-    if (ebs_mem_cnt_q >= 6) begin
-      perf_irq_o = 1'b1;
+      ebs_mem_cnt_d = ebs_mem_cnt_q - ebs_mem_re + ebs_mem_we;
+      ebs_mem_rd_ptr_d = ebs_mem_rd_ptr_q + ebs_mem_re;
+      ebs_mem_wr_ptr_d = ebs_mem_wr_ptr_q + ebs_mem_we;
+    end
+    // TODO_INESC: flush fifo to main memory once it gets close to full
+
+    if (ebs_mem_cnt_q >= NR_ENTRIES/4*3) begin
+      ebs_mem_flush_o = 1'b1;
     end
 
   end
@@ -377,6 +405,11 @@ module perf_counters
       ebs_mem_wr_ptr_q  <= '{default:0};
       ebs_mem_rd_ptr_q  <= '{default:0};
       ebs_mem_cnt_q     <= '{default:0};
+      ebs_sample_cfg_q      <= '{default:0};
+      ebs_sample_trigger_q  <= '{default:0};
+      ebs_sample_index_q    <= '{default:0};
+      ebs_count_sample_q    <= '{default:0};
+      ebs_opt_sample_q      <= '{default:0};
     end else begin
       generic_counter_q <= generic_counter_d;
       mhpmevent_q       <= mhpmevent_d;
@@ -387,6 +420,11 @@ module perf_counters
       ebs_mem_wr_ptr_q  <= ebs_mem_wr_ptr_d;
       ebs_mem_rd_ptr_q  <= ebs_mem_rd_ptr_d;
       ebs_mem_cnt_q     <= ebs_mem_cnt_d;
+      ebs_sample_cfg_q      <= ebs_sample_cfg_d;
+      ebs_sample_trigger_q  <= ebs_sample_trigger_d;
+      ebs_sample_index_q    <= ebs_sample_index_d;
+      ebs_count_sample_q    <= ebs_count_sample_d;
+      ebs_opt_sample_q      <= ebs_opt_sample_d;
     end
   end
 

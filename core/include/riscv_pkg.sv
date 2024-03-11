@@ -580,6 +580,7 @@ package riscv;
     CSR_MHPM_THRESHOLD_30H = 12'hBBE,  // reserved
     CSR_MHPM_THRESHOLD_31H = 12'hBBF,  // reserved
     CSR_MHPM_MMAPED_3 = 12'hBC0,
+    CSR_MHPM_EBS_CFG = 12'hBC1,
     // Cache Control (platform specifc)
     CSR_DCACHE           = 12'h7C1,
     CSR_ICACHE           = 12'h7C0,
@@ -727,6 +728,39 @@ package riscv;
     logic [2:0]   frm;       // float rounding mode
     logic [4:0]   fflags;    // float exception flags
   } fcsr_t;
+
+  // Performance Counters - Event-based sampling configuration register
+  typedef struct packed {
+      logic [31:23]   reserved;   // reserved for other sampling options
+      logic           sip;        // supervisor interrupt-pending csr
+      logic           stval;      // supervisor trap value csr
+      logic           scause;     // supervisor cause csr
+      logic           sepc;       // supervisor exception program counter csr
+      logic           sscratch;   // supervisor scratch csr
+      logic           mip;        // machine interrupt-pending csr
+      logic           mtval;      // machine trap value csr
+      logic           mcause;     // machine cause csr
+      logic           mepc;       // machine exception program counter csr
+      logic           mscratch;   // machine scratch csr
+      logic           a7;         // function argument 7
+      logic           a6;         // function argument 6
+      logic           a5;         // function argument 5
+      logic           a4;         // function argument 4
+      logic           a3;         // function argument 3
+      logic           a2;         // function argument 2
+      logic           a1;         // function argument 1 / return value 1
+      logic           a0;         // function argument 0 / return value 0
+      logic           tp;         // thread pointer
+      logic           gp;         // global pointer
+      logic           sp;         // stack pointer
+      logic           ra;         // return address
+      logic           pc;         // program counter
+  } ebs_sample_opt_t;
+
+  typedef struct packed {
+      logic [63:32]   options;
+      logic [31:0]    active_counters;
+  } ebs_sample_cfg_t;
 
   // PMP
   typedef enum logic [1:0] {

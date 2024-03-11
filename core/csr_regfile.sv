@@ -626,6 +626,9 @@ module csr_regfile
         riscv::CSR_MHPM_MMAPED_3 :
         csr_rdata = perf_data_i;
 
+        riscv::CSR_MHPM_EBS_CFG :
+        csr_rdata = perf_data_i;
+
         // custom (non RISC-V) cache control
         riscv::CSR_DCACHE: csr_rdata = dcache_q;
         riscv::CSR_ICACHE: csr_rdata = icache_q;
@@ -1180,6 +1183,11 @@ module csr_regfile
         end
 
         riscv::CSR_MHPM_MMAPED_3 :  begin
+          perf_we_o = 1'b1;
+          perf_data_o = csr_wdata;
+        end
+
+        riscv::CSR_MHPM_EBS_CFG : begin
           perf_we_o = 1'b1;
           perf_data_o = csr_wdata;
         end

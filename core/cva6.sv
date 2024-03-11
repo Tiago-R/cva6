@@ -472,6 +472,7 @@ module cva6
   logic                                                     icache_miss_cache_perf;
   logic             [   NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
   logic                                                     stall_issue;
+  logic                                                     ebs_mem_flush;
   // --------------
   // CTRL <-> *
   // --------------
@@ -1018,7 +1019,8 @@ module cva6
         .cycle_count_i      (cycle_count_csr_perf),
         .instr_count_i      (instret_count_csr_perf),
         .pc_i               (pc_commit),
-        .mcountinhibit_i    (mcountinhibit_csr_perf)
+        .mcountinhibit_i    (mcountinhibit_csr_perf),
+        .ebs_mem_flush_o    (ebs_mem_flush)
     );
   end : gen_perf_counter
   else begin : gen_no_perf_counter
