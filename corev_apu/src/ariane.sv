@@ -14,15 +14,19 @@
 
 
 module ariane import ariane_pkg::*; #(
-  parameter ariane_pkg::ariane_cfg_t ArianeCfg     = ariane_pkg::ArianeDefaultConfig,
+  parameter config_pkg::cva6_cfg_t CVA6Cfg = config_pkg::cva6_cfg_empty,
+  parameter type rvfi_probes_t = struct packed { 
+      logic csr;
+      logic instr;
+    },
   parameter int unsigned AxiAddrWidth = ariane_axi::AddrWidth,
   parameter int unsigned AxiDataWidth = ariane_axi::DataWidth,
   parameter int unsigned AxiIdWidth   = ariane_axi::IdWidth,
   parameter type axi_ar_chan_t = ariane_axi::ar_chan_t,
   parameter type axi_aw_chan_t = ariane_axi::aw_chan_t,
   parameter type axi_w_chan_t  = ariane_axi::w_chan_t,
-  parameter type axi_req_t = ariane_axi::req_t,
-  parameter type axi_rsp_t = ariane_axi::resp_t
+  parameter type noc_req_t = ariane_axi::req_t,
+  parameter type noc_resp_t = ariane_axi::resp_t
 ) (
   input  logic                         clk_i,
   input  logic                         rst_ni,
@@ -36,36 +40,25 @@ module ariane import ariane_pkg::*; #(
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
-  output logic                         perf_counter_irq_o,
-`ifdef RVFI_PORT
   // RISC-V formal interface port (`rvfi`):
   // Can be left open when formal tracing is not needed.
-  output rvfi_port_t                   rvfi_o,
-`endif
-`ifdef PITON_ARIANE
-  // L15 (memory side)
-  output wt_cache_pkg::l15_req_t       l15_req_o,
-  input  wt_cache_pkg::l15_rtrn_t      l15_rtrn_i
-`else
-  // memory side, AXI Master
-  output axi_req_t                     axi_req_o,
-  input  axi_rsp_t                     axi_resp_i
-`endif
+  output rvfi_probes_t rvfi_probes_o,
+  // memory side
+  output noc_req_t                     noc_req_o,
+  input  noc_resp_t                    noc_resp_i
 );
 
   cvxif_pkg::cvxif_req_t  cvxif_req;
   cvxif_pkg::cvxif_resp_t cvxif_resp;
 
   cva6 #(
-    .ArianeCfg  ( ArianeCfg ),
-    .AxiAddrWidth ( AxiAddrWidth ),
-    .AxiDataWidth ( AxiDataWidth ),
-    .AxiIdWidth ( AxiIdWidth ),
+    .CVA6Cfg ( CVA6Cfg ),
+    .rvfi_probes_t ( rvfi_probes_t ),
     .axi_ar_chan_t (axi_ar_chan_t),
     .axi_aw_chan_t (axi_aw_chan_t),
     .axi_w_chan_t (axi_w_chan_t),
-    .axi_req_t (axi_req_t),
-    .axi_rsp_t (axi_rsp_t)
+    .noc_req_t (noc_req_t),
+    .noc_resp_t (noc_resp_t)
   ) i_cva6 (
     .clk_i                ( clk_i                     ),
     .rst_ni               ( rst_ni                    ),
@@ -75,28 +68,14 @@ module ariane import ariane_pkg::*; #(
     .ipi_i                ( ipi_i                     ),
     .time_irq_i           ( time_irq_i                ),
     .debug_req_i          ( debug_req_i               ),
-    .perf_counter_irq_o   ( perf_counter_irq_o        ),
-`ifdef RVFI_PORT
-    .rvfi_o               ( rvfi_o                    ),
-`else
-    .rvfi_o               (                           ),
-`endif
+    .rvfi_probes_o        ( rvfi_probes_o             ),
     .cvxif_req_o          ( cvxif_req                 ),
     .cvxif_resp_i         ( cvxif_resp                ),
-`ifdef PITON_ARIANE
-    .l15_req_o            ( l15_req_o                 ),
-    .l15_rtrn_i           ( l15_rtrn_i                ),
-    .axi_req_o            (                           ),
-    .axi_resp_i           ( '0                        )
-`else
-    .l15_req_o            (                           ),
-    .l15_rtrn_i           ( '0                        ),
-    .axi_req_o            ( axi_req_o                 ),
-    .axi_resp_i           ( axi_resp_i                )
-`endif
+    .noc_req_o            ( noc_req_o                 ),
+    .noc_resp_i           ( noc_resp_i                )
   );
 
-  if (ariane_pkg::CVXIF_PRESENT) begin : gen_example_coprocessor
+  if (CVA6Cfg.CvxifEn) begin : gen_example_coprocessor
     cvxif_example_coprocessor i_cvxif_coprocessor (
       .clk_i                ( clk_i                          ),
       .rst_ni               ( rst_ni                         ),

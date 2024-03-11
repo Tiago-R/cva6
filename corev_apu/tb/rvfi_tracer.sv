@@ -8,14 +8,18 @@
 // Original Author: Jean-Roch COULON - Thales
 
 module rvfi_tracer #(
+  parameter config_pkg::cva6_cfg_t CVA6Cfg = config_pkg::cva6_cfg_empty,
+  parameter type rvfi_instr_t = logic,
+  parameter type rvfi_csr_t = logic,
+  //
   parameter logic [7:0] HART_ID      = '0,
   parameter int unsigned DEBUG_START = 0,
-  parameter int unsigned NR_COMMIT_PORTS = 2,
   parameter int unsigned DEBUG_STOP  = 0
 )(
   input logic                           clk_i,
   input logic                           rst_ni,
-  input rvfi_pkg::rvfi_instr_t[NR_COMMIT_PORTS-1:0]           rvfi_i,
+  input rvfi_instr_t[CVA6Cfg.NrCommitPorts-1:0] rvfi_i,
+  input rvfi_csr_t                      rvfi_csr_i,
   output logic[31:0]                    end_of_test_o
 );
 
@@ -44,7 +48,7 @@ module rvfi_tracer #(
   assign end_of_test_o = end_of_test_d;
   always_ff @(posedge clk_i) begin
     end_of_test_q = (rst_ni && (end_of_test_d[0] == 1'b1)) ? end_of_test_d : 0;
-    for (int i = 0; i < NR_COMMIT_PORTS; i++) begin
+    for (int i = 0; i < CVA6Cfg.NrCommitPorts; i++) begin
       pc64 = {{riscv::XLEN-riscv::VLEN{rvfi_i[i].pc_rdata[riscv::VLEN-1]}}, rvfi_i[i].pc_rdata};
       // print the instruction information if the instruction is valid or a trap is taken
       if (rvfi_i[i].valid) begin

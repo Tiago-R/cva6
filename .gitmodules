@@ -34,3 +34,12 @@
 [submodule "corev_apu/tb/common_verification"]
 	path = corev_apu/tb/common_verification
 	url = https://github.com/pulp-platform/common_verification.git
+[submodule "verif/core-v-verif"]
+	path = verif/core-v-verif
+	url = https://github.com/openhwgroup/core-v-verif
+[submodule "core/cache_subsystem/hpdcache"]
+	path = core/cache_subsystem/hpdcache
+	url = https://github.com/openhwgroup/cv-hpdcache.git
+[submodule "verif/sim/dv"]
+	path = verif/sim/dv
+	url = https://github.com/google/riscv-dv.git
