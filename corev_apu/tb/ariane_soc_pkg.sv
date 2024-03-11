@@ -19,10 +19,6 @@ package ariane_soc;
 
   localparam NrSlaves = 2; // actually masters, but slaves on the crossbar
 
-  // 4 is recommended by AXI standard, so lets stick to it, do not change
-  localparam IdWidth   = 4;
-  localparam IdWidthSlave = IdWidth + $clog2(NrSlaves);
-
   typedef enum int unsigned {
     DRAM     = 0,
     GPIO     = 1,
@@ -68,28 +64,5 @@ package ariane_soc;
 
   localparam NrRegion = 1;
   localparam logic [NrRegion-1:0][NB_PERIPHERALS-1:0] ValidRule = {{NrRegion * NB_PERIPHERALS}{1'b1}};
-
-  localparam ariane_pkg::ariane_cfg_t ArianeSocCfg = '{
-    RASDepth:   int'(cva6_config_pkg::CVA6ConfigRASDepth),
-    BTBEntries: int'(cva6_config_pkg::CVA6ConfigBTBEntries),
-    BHTEntries: int'(cva6_config_pkg::CVA6ConfigBHTEntries),
-    // idempotent region
-    NrNonIdempotentRules:  unsigned'(1),
-    NonIdempotentAddrBase: 1024'({64'b0}),
-    NonIdempotentLength:   1024'({DRAMBase}),
-    NrExecuteRegionRules:  unsigned'(3),
-    ExecuteRegionAddrBase: 1024'({DRAMBase,   ROMBase,   DebugBase}),
-    ExecuteRegionLength:   1024'({DRAMLength, ROMLength, DebugLength}),
-    // cached region
-    NrCachedRegionRules:   unsigned'(1),
-    CachedRegionAddrBase:  1024'({DRAMBase}),
-    CachedRegionLength:    1024'({DRAMLength}),
-    //  cache config
-    AxiCompliant:           1'b1,
-    SwapEndianess:          1'b0,
-    // debug
-    DmBaseAddress:          DebugBase,
-    NrPMPEntries:           unsigned'(cva6_config_pkg::CVA6ConfigNrPMPEntries)
-  };
 
 endpackage

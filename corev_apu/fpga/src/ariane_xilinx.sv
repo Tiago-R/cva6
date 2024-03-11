@@ -12,6 +12,7 @@
 // Author: Florian Zaruba <zarubaf@iis.ee.ethz.ch>
 
 module ariane_xilinx (
+// WARNING: Do not define input parameters. This causes the FPGA build to fail.
 `ifdef GENESYSII
   input  logic         sys_clk_p   ,
   input  logic         sys_clk_n   ,
@@ -152,6 +153,64 @@ module ariane_xilinx (
   input  logic        rx          ,
   output logic        tx
 );
+
+// CVA6 Xilinx configuration
+localparam config_pkg::cva6_user_cfg_t CVA6UserCfg = '{
+  NrCommitPorts:         cva6_config_pkg::CVA6ConfigNrCommitPorts,
+  AxiAddrWidth:          cva6_config_pkg::CVA6ConfigAxiAddrWidth,
+  AxiDataWidth:          cva6_config_pkg::CVA6ConfigAxiDataWidth,
+  AxiIdWidth:            cva6_config_pkg::CVA6ConfigAxiIdWidth,
+  AxiUserWidth:          cva6_config_pkg::CVA6ConfigDataUserWidth,
+  MemTidWidth:           cva6_config_pkg::CVA6ConfigMemTidWidth,
+  NrLoadBufEntries:      cva6_config_pkg::CVA6ConfigNrLoadBufEntries,
+  RASDepth:              cva6_config_pkg::CVA6ConfigRASDepth,
+  BTBEntries:            cva6_config_pkg::CVA6ConfigBTBEntries,
+  BHTEntries:            cva6_config_pkg::CVA6ConfigBHTEntries,
+  FpuEn:                 bit'(cva6_config_pkg::CVA6ConfigFpuEn),
+  XF16:                  bit'(cva6_config_pkg::CVA6ConfigF16En),
+  XF16ALT:               bit'(cva6_config_pkg::CVA6ConfigF16AltEn),
+  XF8:                   bit'(cva6_config_pkg::CVA6ConfigF8En),
+  RVA:                   bit'(cva6_config_pkg::CVA6ConfigAExtEn),
+  RVB:                   bit'(cva6_config_pkg::CVA6ConfigAExtEn),
+  RVV:                   bit'(cva6_config_pkg::CVA6ConfigVExtEn),
+  RVC:                   bit'(cva6_config_pkg::CVA6ConfigCExtEn),
+  RVZCB:                 bit'(cva6_config_pkg::CVA6ConfigZcbExtEn),
+  XFVec:                 bit'(cva6_config_pkg::CVA6ConfigFVecEn),
+  CvxifEn:               bit'(cva6_config_pkg::CVA6ConfigCvxifEn),
+  ZiCondExtEn:           bit'(0),
+  RVS:                   bit'(1),
+  RVU:                   bit'(1),
+  HaltAddress:           dm::HaltAddress,
+  ExceptionAddress:      dm::ExceptionAddress,
+  DmBaseAddress:         ariane_soc::DebugBase,
+  TvalEn:                bit'(cva6_config_pkg::CVA6ConfigTvalEn),
+  NrPMPEntries:          unsigned'(cva6_config_pkg::CVA6ConfigNrPMPEntries),
+  PMPCfgRstVal:          {16{64'h0}},
+  PMPAddrRstVal:         {16{64'h0}},
+  PMPEntryReadOnly:      16'd0,
+  NOCType:               config_pkg::NOC_TYPE_AXI4_ATOP,
+  // idempotent region
+  NrNonIdempotentRules:  unsigned'(1),
+  NonIdempotentAddrBase: 1024'({64'b0}),
+  NonIdempotentLength:   1024'({ariane_soc::DRAMBase}),
+  NrExecuteRegionRules:  unsigned'(3),
+  ExecuteRegionAddrBase: 1024'({ariane_soc::DRAMBase,   ariane_soc::ROMBase,   ariane_soc::DebugBase}),
+  ExecuteRegionLength:   1024'({ariane_soc::DRAMLength, ariane_soc::ROMLength, ariane_soc::DebugLength}),
+  // cached region
+  NrCachedRegionRules:   unsigned'(1),
+  CachedRegionAddrBase:  1024'({ariane_soc::DRAMBase}),
+  CachedRegionLength:    1024'({ariane_soc::DRAMLength}),
+  MaxOutstandingStores:  unsigned'(7),
+  DebugEn: bit'(1),
+  AxiBurstWriteEn: bit'(0)
+};
+localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(CVA6UserCfg);
+
+localparam type rvfi_probes_t = struct packed { 
+      logic csr;
+      logic instr;
+    };
+
 // 24 MByte in 8 byte words
 localparam NumWords = (24 * 1024 * 1024) / 8;
 localparam NBSlave = 2; // debug, ariane
@@ -559,17 +618,15 @@ logic [1:0]    axi_adapter_size;
 assign axi_adapter_size = (riscv::XLEN == 64) ? 2'b11 : 2'b10;
 
 axi_adapter #(
+    .CVA6Cfg               ( CVA6Cfg                  ),
     .DATA_WIDTH            ( riscv::XLEN              ),
-    .AXI_ADDR_WIDTH        ( ariane_axi::AddrWidth    ),
-    .AXI_DATA_WIDTH        ( ariane_axi::DataWidth    ),
-    .AXI_ID_WIDTH          ( ariane_axi::IdWidth      ),
     .axi_req_t             ( ariane_axi::req_t        ),
     .axi_rsp_t             ( ariane_axi::resp_t       )
 ) i_dm_axi_master (
     .clk_i                 ( clk                       ),
     .rst_ni                ( rst_n                     ),
     .req_i                 ( dm_master_req             ),
-    .type_i                ( ariane_axi::SINGLE_REQ    ),
+    .type_i                ( ariane_pkg::SINGLE_REQ    ),
     .amo_i                 ( ariane_pkg::AMO_NONE      ),
     .gnt_o                 ( dm_master_gnt             ),
     .addr_i                ( dm_master_add             ),
@@ -697,7 +754,8 @@ ariane_axi::req_t    axi_ariane_req;
 ariane_axi::resp_t   axi_ariane_resp;
 
 ariane #(
-    .ArianeCfg ( ariane_soc::ArianeSocCfg )
+    .CVA6Cfg ( CVA6Cfg ),
+    .rvfi_probes_t ( rvfi_probes_t )
 ) i_ariane (
     .clk_i        ( clk                 ),
     .rst_ni       ( ndmreset_n          ),
@@ -706,9 +764,10 @@ ariane #(
     .irq_i        ( irq                 ),
     .ipi_i        ( ipi                 ),
     .time_irq_i   ( timer_irq           ),
+    .rvfi_probes_o( /* open */          ),
     .debug_req_i  ( debug_req_irq       ),
-    .axi_req_o    ( axi_ariane_req      ),
-    .axi_resp_i   ( axi_ariane_resp     )
+    .noc_req_o    ( axi_ariane_req      ),
+    .noc_resp_i   ( axi_ariane_resp     )
 );
 
 `AXI_ASSIGN_FROM_REQ(slave[0], axi_ariane_req)

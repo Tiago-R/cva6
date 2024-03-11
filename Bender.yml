@@ -12,76 +12,86 @@ dependencies:
     { git: "https://github.com/pulp-platform/common_cells", version: 1.23.0 }
   fpnew: { git: "https://github.com/openhwgroup/cvfpu.git", version: 0.7.0 }
   tech_cells_generic:
-    {
-      git: "https://github.com/pulp-platform/tech_cells_generic.git",
-      rev: b2a68114302af1d8191ddf34ea0e07b471911866,
-    }
+    { git: "https://github.com/pulp-platform/tech_cells_generic.git", version: 0.2.13 }
 
 frozen: true
 
 sources:
   - files:
-      - target: cv64a6_imafdc_sv39
+      - core/include/config_pkg.sv
+
+      - target: cv64a6_imafdcv_sv39
         files:
-          - core/include/cv64a6_imafdc_sv39_config_pkg.sv
+          - core/include/cv64a6_imafdcv_sv39_config_pkg.sv
           - core/include/riscv_pkg.sv
-          - common/local/rvfi/rvfi_pkg.sv
-          - core/include/ariane_dm_pkg.sv
           - core/include/ariane_pkg.sv
           - core/mmu_sv39/tlb.sv
           - core/mmu_sv39/mmu.sv
           - core/mmu_sv39/ptw.sv
+          - corev_apu/tb/common/mock_uart.sv
+
+      - target: cv64a6_imafdc_sv39
+        files:
+          - core/include/cv64a6_imafdc_sv39_config_pkg.sv
+          - core/include/riscv_pkg.sv
+          - core/include/ariane_pkg.sv
+          - core/mmu_sv39/tlb.sv
+          - core/mmu_sv39/mmu.sv
+          - core/mmu_sv39/ptw.sv
+          - core/cva6_accel_first_pass_decoder_stub.sv
+
+      - target: cv64a6_imafdc_sv39_wb
+        files:
+          - core/include/cv64a6_imafdc_sv39_wb_config_pkg.sv
+          - core/include/riscv_pkg.sv
+          - core/include/ariane_pkg.sv
+          - core/mmu_sv39/tlb.sv
+          - core/mmu_sv39/mmu.sv
+          - core/mmu_sv39/ptw.sv
+          - core/cva6_accel_first_pass_decoder_stub.sv
 
       - target: cv32a6_imac_sv0
         files:
           - core/include/cv32a6_imac_sv0_config_pkg.sv
           - core/include/riscv_pkg.sv
-          - common/local/rvfi/rvfi_pkg.sv
-          - core/include/ariane_dm_pkg.sv
           - core/include/ariane_pkg.sv
           - core/mmu_sv32/cva6_tlb_sv32.sv
           - core/mmu_sv32/cva6_mmu_sv32.sv
           - core/mmu_sv32/cva6_ptw_sv32.sv
+          - core/cva6_accel_first_pass_decoder_stub.sv
 
       - target: cv32a6_imac_sv32
         files:
           - core/include/cv32a6_imac_sv32_config_pkg.sv
           - core/include/riscv_pkg.sv
-          - common/local/rvfi/rvfi_pkg.sv
-          - core/include/ariane_dm_pkg.sv
           - core/include/ariane_pkg.sv
           - core/mmu_sv32/cva6_tlb_sv32.sv
           - core/mmu_sv32/cva6_mmu_sv32.sv
           - core/mmu_sv32/cva6_ptw_sv32.sv
+          - core/cva6_accel_first_pass_decoder_stub.sv
 
       - target: cv32a6_imafc_sv32
         files:
           - core/include/cv32a6_imafc_sv32_config_pkg.sv
           - core/include/riscv_pkg.sv
-          - core/include/ariane_dm_pkg.sv
           - core/include/ariane_pkg.sv
           - core/mmu_sv32/cva6_tlb_sv32.sv
           - core/mmu_sv32/cva6_mmu_sv32.sv
           - core/mmu_sv32/cva6_ptw_sv32.sv
+          - core/cva6_accel_first_pass_decoder_stub.sv
 
       # included via target core/include/${TARGET_CFG}_config_pkg.sv
       # ariane_axi_pkg is dependent on this.
       # - vendor/pulp-platform/axi/src/axi_pkg.sv
 
       # Packages
-      - core/include/ariane_axi_pkg.sv
       - core/include/wt_cache_pkg.sv
       - core/include/std_cache_pkg.sv
-      - core/include/axi_intf.sv
+      - core/include/acc_pkg.sv
 
       # for all the below files use Flist.cva6 as baseline and also look at Makefile pd/synth
-
-      # FPGA support keep vendoring here because too old
-      - vendor/pulp-platform/fpga-support/rtl/SyncDpRam.sv
-      - vendor/pulp-platform/fpga-support/rtl/AsyncDpRam.sv
-      - vendor/pulp-platform/fpga-support/rtl/AsyncThreePortRam.sv
-
       # CVXIF
+      - core/include/instr_tracer_pkg.sv
       - core/include/cvxif_pkg.sv
       - core/cvxif_example/include/cvxif_instr_pkg.sv
       - core/cvxif_fu.sv
@@ -126,7 +136,6 @@ sources:
       #     - vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/preprocess_mvp.sv
 
       # Top-level source files (not necessarily instantiated at the top of the cva6).
-      - corev_apu/src/ariane.sv
       - core/cva6.sv
       - core/alu.sv
       # Note: depends on fpnew_pkg, above
@@ -151,7 +160,6 @@ sources:
       - core/perf_counters.sv
       - core/ariane_regfile_ff.sv
       - core/ariane_regfile_fpga.sv
-      - core/re_name.sv
       # NOTE: scoreboard.sv modified for DSIM (unchanged for other simulators)
       - core/scoreboard.sv
       - core/store_buffer.sv
@@ -177,6 +185,13 @@ sources:
       - core/cache_subsystem/cva6_icache.sv
       - core/cache_subsystem/wt_cache_subsystem.sv
       - core/cache_subsystem/wt_axi_adapter.sv
+      - core/cache_subsystem/tag_cmp.sv
+      - core/cache_subsystem/cva6_icache_axi_wrapper.sv
+      - core/cache_subsystem/axi_adapter.sv
+      - core/cache_subsystem/miss_handler.sv
+      - core/cache_subsystem/cache_ctrl.sv
+      - core/cache_subsystem/std_nbdcache.sv
+      - core/cache_subsystem/std_cache_subsystem.sv
 
       # Physical Memory Protection
       # NOTE: pmp.sv modified for DSIM (unchanged for other simulators)
@@ -204,12 +219,12 @@ sources:
       - target: not(synthesis)
         include_dirs:
           - core/include
+          - common/local/util
         files:
           # Tracer (behavioral code, not RTL)
+          - core/include/instr_tracer_pkg.sv
           - common/local/util/instr_tracer.sv
           - common/local/util/instr_tracer_if.sv
-          - common/local/util/instr_trace_item.svh
-          - common/local/util/ex_trace_item.svh
 
     # TODO target define FPGA target + verification etc
     #   - target: test

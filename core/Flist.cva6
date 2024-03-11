@@ -32,22 +32,42 @@ ${CVA6_REPO_DIR}/vendor/pulp-platform/fpga-support/rtl/AsyncThreePortRam.sv
 
 +incdir+${CVA6_REPO_DIR}/vendor/pulp-platform/common_cells/include/
 +incdir+${CVA6_REPO_DIR}/vendor/pulp-platform/common_cells/src/
++incdir+${CVA6_REPO_DIR}/vendor/pulp-platform/axi/include/
 +incdir+${CVA6_REPO_DIR}/common/local/util/
 
+// Floating point unit
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_pkg.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_cast_multi.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_classifier.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_divsqrt_multi.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_fma_multi.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_fma.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_noncomp.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_block.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_fmt_slice.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_multifmt_slice.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_rounding.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_top.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/defs_div_sqrt_mvp.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/control_mvp.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/div_sqrt_top_mvp.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/iteration_div_sqrt_mvp.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/norm_div_sqrt_mvp.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/nrbd_nrsc_mvp.sv
+${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/preprocess_mvp.sv
+
+${CVA6_REPO_DIR}/core/include/config_pkg.sv
 ${CVA6_REPO_DIR}/core/include/${TARGET_CFG}_config_pkg.sv
 ${CVA6_REPO_DIR}/core/include/riscv_pkg.sv
-${CVA6_REPO_DIR}/common/local/rvfi/rvfi_pkg.sv
-${CVA6_REPO_DIR}/core/include/ariane_dm_pkg.sv
+// Note: depends on fpnew_pkg, above
 ${CVA6_REPO_DIR}/core/include/ariane_pkg.sv
-// TODO: ariane_axi_pkg is dependent on this.
 ${CVA6_REPO_DIR}/vendor/pulp-platform/axi/src/axi_pkg.sv
 
 // Packages
-${CVA6_REPO_DIR}/core/include/ariane_axi_pkg.sv
 ${CVA6_REPO_DIR}/core/include/wt_cache_pkg.sv
 ${CVA6_REPO_DIR}/core/include/std_cache_pkg.sv
-${CVA6_REPO_DIR}/core/include/axi_intf.sv
 ${CVA6_REPO_DIR}/core/include/instr_tracer_pkg.sv
+${CVA6_REPO_DIR}/core/include/build_config_pkg.sv
 
 //CVXIF
 ${CVA6_REPO_DIR}/core/include/cvxif_pkg.sv
@@ -76,29 +96,9 @@ ${CVA6_REPO_DIR}/vendor/pulp-platform/common_cells/src/exp_backoff.sv
 ${CVA6_REPO_DIR}/vendor/pulp-platform/common_cells/src/counter.sv
 ${CVA6_REPO_DIR}/vendor/pulp-platform/common_cells/src/delta_counter.sv
 
-// Floating point unit
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_pkg.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_cast_multi.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_classifier.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_divsqrt_multi.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_fma_multi.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_fma.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_noncomp.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_block.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_fmt_slice.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_opgroup_multifmt_slice.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_rounding.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpnew_top.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/defs_div_sqrt_mvp.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/control_mvp.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/div_sqrt_top_mvp.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/iteration_div_sqrt_mvp.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/norm_div_sqrt_mvp.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/nrbd_nrsc_mvp.sv
-${CVA6_REPO_DIR}/vendor/openhwgroup/cvfpu/src/fpu_div_sqrt_mvp/hdl/preprocess_mvp.sv
-
 // Top-level source files (not necessarily instantiated at the top of the cva6).
 ${CVA6_REPO_DIR}/core/cva6.sv
+${CVA6_REPO_DIR}/core/cva6_rvfi_probes.sv
 ${CVA6_REPO_DIR}/core/alu.sv
 // Note: depends on fpnew_pkg, above
 ${CVA6_REPO_DIR}/core/fpu_wrap.sv
@@ -122,7 +122,6 @@ ${CVA6_REPO_DIR}/core/serdiv.sv
 ${CVA6_REPO_DIR}/core/perf_counters.sv
 ${CVA6_REPO_DIR}/core/ariane_regfile_ff.sv
 ${CVA6_REPO_DIR}/core/ariane_regfile_fpga.sv
-${CVA6_REPO_DIR}/core/re_name.sv
 // NOTE: scoreboard.sv modified for DSIM (unchanged for other simulators)
 ${CVA6_REPO_DIR}/core/scoreboard.sv
 ${CVA6_REPO_DIR}/core/store_buffer.sv
@@ -130,6 +129,8 @@ ${CVA6_REPO_DIR}/core/amo_buffer.sv
 ${CVA6_REPO_DIR}/core/store_unit.sv
 ${CVA6_REPO_DIR}/core/commit_stage.sv
 ${CVA6_REPO_DIR}/core/axi_shim.sv
+${CVA6_REPO_DIR}/core/cva6_accel_first_pass_decoder_stub.sv
+${CVA6_REPO_DIR}/core/acc_dispatcher.sv
 
 // What is "frontend"?
 ${CVA6_REPO_DIR}/core/frontend/btb.sv
@@ -155,6 +156,19 @@ ${CVA6_REPO_DIR}/core/cache_subsystem/cache_ctrl.sv
 ${CVA6_REPO_DIR}/core/cache_subsystem/cva6_icache_axi_wrapper.sv
 ${CVA6_REPO_DIR}/core/cache_subsystem/std_cache_subsystem.sv
 ${CVA6_REPO_DIR}/core/cache_subsystem/std_nbdcache.sv
+${HPDCACHE_TARGET_CFG}
+-F ${HPDCACHE_DIR}/rtl/hpdcache.Flist
+${HPDCACHE_DIR}/rtl/src/utils/hpdcache_mem_req_read_arbiter.sv
+${HPDCACHE_DIR}/rtl/src/utils/hpdcache_mem_req_write_arbiter.sv
+${HPDCACHE_DIR}/rtl/src/utils/hpdcache_mem_resp_demux.sv
+${HPDCACHE_DIR}/rtl/src/utils/hpdcache_mem_to_axi_read.sv
+${HPDCACHE_DIR}/rtl/src/utils/hpdcache_mem_to_axi_write.sv
+${CVA6_REPO_DIR}/core/cache_subsystem/cva6_hpdcache_subsystem.sv
+${CVA6_REPO_DIR}/core/cache_subsystem/cva6_hpdcache_subsystem_axi_arbiter.sv
+${CVA6_REPO_DIR}/core/cache_subsystem/cva6_hpdcache_if_adapter.sv
+${HPDCACHE_DIR}/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv
+${HPDCACHE_DIR}/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv
+${HPDCACHE_DIR}/rtl/src/common/macros/behav/hpdcache_sram_wmask_1rw.sv
 
 // Physical Memory Protection
 // NOTE: pmp.sv modified for DSIM (unchanged for other simulators)
