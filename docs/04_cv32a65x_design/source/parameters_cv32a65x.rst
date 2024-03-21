@@ -16,6 +16,14 @@
      - description
      - Value
 
+   * - XLEN
+     - General Purpose Register Size (in bits)
+     - 32
+
+   * - FPGA_EN
+     - Is FPGA optimization of CV32A6
+     - 0
+
    * - NrCommitPorts
      - Number of commit ports
      - 1
@@ -35,6 +43,10 @@
    * - AxiUserWidth
      - AXI User width
      - 32
+
+   * - MemTidWidth
+     - TODO
+     - 2
 
    * - NrLoadBufEntries
      - Load buffer entry buffer
@@ -76,6 +88,10 @@
      - Zcb RISC-V extension
      - 1
 
+   * - RVZCMP
+     - Zcmp RISC-V extension
+     - 0
+
    * - XFVec
      - Non standard Vector Floating Point
      - 0
@@ -88,54 +104,6 @@
      - Zicond RISC-V extension
      - 0
 
-   * - RVF
-     - Single precision FP RISC-V extension
-     - 0
-
-   * - RVD
-     - Double precision FP RISC-V extension
-     - 0
-
-   * - FpPresent
-     - Floating Point is present
-     - 0
-
-   * - NSX
-     - Non standard Floating is Point present
-     - 0
-
-   * - FLen
-     - Floating Point lenght
-     - 0
-
-   * - RVFVec
-     - Vector Floating Point extension
-     - 0
-
-   * - XF16Vec
-     - 16 bits vector Floating Point extension
-     - 0
-
-   * - XF16ALTVec
-     - 16 bits vector Floating Point Alt extension
-     - 0
-
-   * - XF8Vec
-     - 8 bits vector Floating Point extension
-     - 0
-
-   * - NrRgprPorts
-     - TO_BE_COMPLETED
-     - 0
-
-   * - NrWbPorts
-     - Function Unit write back port number
-     - 0
-
-   * - EnableAccelerator
-     - Accelerate Port coprocessor interface
-     - 0
-
    * - RVS
      - Supervisor mode
      - 0
@@ -143,6 +111,10 @@
    * - RVU
      - User mode
      - 0
+
+   * - NrScoreboardEntries
+     - Scoreboard length
+     - 4
 
    * - HaltAddress
      - Address to jump when halt request
@@ -236,10 +208,42 @@
      - Debug support
      - 0
 
-   * - NonIdemPotenceEn
-     - Non idem potency
-     - 0
-
    * - AxiBurstWriteEn
      - AXI burst in write
+     - 0
+
+   * - IcacheByteSize
+     - Instruction cache size (in bytes)
+     - 2048
+
+   * - IcacheSetAssoc
+     - Instruction cache associativity (number of ways)
+     - 2
+
+   * - IcacheLineWidth
+     - Instruction line width
+     - 128
+
+   * - DcacheByteSize
+     - Data cache size (in bytes)
+     - 32768
+
+   * - DcacheSetAssoc
+     - Data cache associativity (number of ways)
+     - 8
+
+   * - DcacheLineWidth
+     - Data line width
+     - 128
+
+   * - DataUserEn
+     - TODO
+     - 0
+
+   * - FetchUserWidth
+     - TODO
+     - 32
+
+   * - FetchUserEn
+     - TODO
      - 0

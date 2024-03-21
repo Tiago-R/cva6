@@ -16,6 +16,8 @@ module cva6_rvfi_probes
     parameter type exception_t = logic,
     parameter type scoreboard_entry_t = logic,
     parameter type lsu_ctrl_t = logic,
+    parameter type rvfi_probes_instr_t = logic,
+    parameter type rvfi_probes_csr_t = logic,
     parameter type rvfi_probes_t = logic
 
 ) (
@@ -26,26 +28,26 @@ module cva6_rvfi_probes
     input logic [31:0] instruction_i,
     input logic        is_compressed_i,
 
-    input logic [TRANS_ID_BITS-1:0] issue_pointer_i,
-    input logic [CVA6Cfg.NrCommitPorts-1:0][TRANS_ID_BITS-1:0] commit_pointer_i,
+    input logic [CVA6Cfg.TRANS_ID_BITS-1:0] issue_pointer_i,
+    input logic [CVA6Cfg.NrCommitPorts-1:0][CVA6Cfg.TRANS_ID_BITS-1:0] commit_pointer_i,
 
     input logic flush_unissued_instr_i,
     input logic decoded_instr_valid_i,
     input logic decoded_instr_ack_i,
 
-    input riscv::xlen_t rs1_forwarding_i,
-    input riscv::xlen_t rs2_forwarding_i,
+    input logic [CVA6Cfg.XLEN-1:0] rs1_forwarding_i,
+    input logic [CVA6Cfg.XLEN-1:0] rs2_forwarding_i,
 
     input scoreboard_entry_t [CVA6Cfg.NrCommitPorts-1:0] commit_instr_i,
     input exception_t ex_commit_i,
     input riscv::priv_lvl_t priv_lvl_i,
 
-    input lsu_ctrl_t                                              lsu_ctrl_i,
-    input logic      [    CVA6Cfg.NrWbPorts-1:0][riscv::XLEN-1:0] wbdata_i,
-    input logic      [CVA6Cfg.NrCommitPorts-1:0]                  commit_ack_i,
-    input logic      [          riscv::PLEN-1:0]                  mem_paddr_i,
-    input logic                                                   debug_mode_i,
-    input logic      [CVA6Cfg.NrCommitPorts-1:0][riscv::XLEN-1:0] wdata_i,
+    input lsu_ctrl_t                                               lsu_ctrl_i,
+    input logic      [    CVA6Cfg.NrWbPorts-1:0][CVA6Cfg.XLEN-1:0] wbdata_i,
+    input logic      [CVA6Cfg.NrCommitPorts-1:0]                   commit_ack_i,
+    input logic      [         CVA6Cfg.PLEN-1:0]                   mem_paddr_i,
+    input logic                                                    debug_mode_i,
+    input logic      [CVA6Cfg.NrCommitPorts-1:0][CVA6Cfg.XLEN-1:0] wdata_i,
 
     input rvfi_probes_csr_t csr_i,
 

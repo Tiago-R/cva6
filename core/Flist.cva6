@@ -30,6 +30,7 @@ ${CVA6_REPO_DIR}/vendor/pulp-platform/fpga-support/rtl/SyncDpRam.sv
 ${CVA6_REPO_DIR}/vendor/pulp-platform/fpga-support/rtl/AsyncDpRam.sv
 ${CVA6_REPO_DIR}/vendor/pulp-platform/fpga-support/rtl/AsyncThreePortRam.sv
 
++incdir+${CVA6_REPO_DIR}/core/include/
 +incdir+${CVA6_REPO_DIR}/vendor/pulp-platform/common_cells/include/
 +incdir+${CVA6_REPO_DIR}/vendor/pulp-platform/common_cells/src/
 +incdir+${CVA6_REPO_DIR}/vendor/pulp-platform/axi/include/
@@ -104,6 +105,7 @@ ${CVA6_REPO_DIR}/core/alu.sv
 ${CVA6_REPO_DIR}/core/fpu_wrap.sv
 ${CVA6_REPO_DIR}/core/branch_unit.sv
 ${CVA6_REPO_DIR}/core/compressed_decoder.sv
+${CVA6_REPO_DIR}/core/macro_decoder.sv
 ${CVA6_REPO_DIR}/core/controller.sv
 ${CVA6_REPO_DIR}/core/csr_buffer.sv
 ${CVA6_REPO_DIR}/core/csr_regfile.sv
@@ -186,6 +188,11 @@ ${CVA6_REPO_DIR}/common/local/util/sram.sv
 ${CVA6_REPO_DIR}/core/mmu_sv39/mmu.sv
 ${CVA6_REPO_DIR}/core/mmu_sv39/ptw.sv
 ${CVA6_REPO_DIR}/core/mmu_sv39/tlb.sv
+
+// MMU Sv39x4
+${CVA6_REPO_DIR}/core/mmu_sv39x4/cva6_mmu_sv39x4.sv
+${CVA6_REPO_DIR}/core/mmu_sv39x4/cva6_ptw_sv39x4.sv
+${CVA6_REPO_DIR}/core/mmu_sv39x4/cva6_tlb_sv39x4.sv
 
 // MMU Sv32
 ${CVA6_REPO_DIR}/core/mmu_sv32/cva6_mmu_sv32.sv

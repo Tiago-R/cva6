@@ -31,8 +31,8 @@ module perf_counters
     // SRAM like interface
     input logic [11:0] addr_i,  // read/write address (up to 6 counters possible)
     input logic we_i,  // write enable
-    input riscv::xlen_t data_i,  // data to write
-    output riscv::xlen_t data_o,  // data to read
+    input logic [CVA6Cfg.XLEN-1:0] data_i,  // data to write
+    output logic [CVA6Cfg.XLEN-1:0] data_o,  // data to read
     // from commit stage
     input  scoreboard_entry_t [CVA6Cfg.NrCommitPorts-1:0] commit_instr_i,     // the instruction we want to commit
     input  logic [CVA6Cfg.NrCommitPorts-1:0]              commit_ack_i,       // acknowledge that we are indeed committing
@@ -54,7 +54,7 @@ module perf_counters
     input exception_t branch_exceptions_i,  //Branch exceptions->execute unit-> branch_exception_o
     input icache_dreq_t l1_icache_access_i,
     input dcache_req_i_t [2:0] l1_dcache_access_i,
-    input  logic [NumPorts-1:0][DCACHE_SET_ASSOC-1:0]miss_vld_bits_i,  //For Cache eviction (3ports-LOAD,STORE,PTW)
+    input  logic [NumPorts-1:0][CVA6Cfg.DCACHE_SET_ASSOC-1:0]miss_vld_bits_i,  //For Cache eviction (3ports-LOAD,STORE,PTW)
     input logic i_tlb_flush_i,
     input logic stall_issue_i,  //stall-read operands
     input  logic [63:0] cycle_count_i,
@@ -204,7 +204,8 @@ module perf_counters
             riscv::CSR_MHPM_COUNTER_6,
             riscv::CSR_MHPM_COUNTER_7,
             riscv::CSR_MHPM_COUNTER_8  :begin
-        if (riscv::XLEN == 32) data_o = generic_counter_q[addr_i-riscv::CSR_MHPM_COUNTER_3+1][31:0];
+        if (CVA6Cfg.XLEN == 32)
+          data_o = generic_counter_q[addr_i-riscv::CSR_MHPM_COUNTER_3+1][31:0];
         else data_o = generic_counter_q[addr_i-riscv::CSR_MHPM_COUNTER_3+1];
       end
       riscv::CSR_MHPM_COUNTER_3H,
@@ -213,7 +214,7 @@ module perf_counters
             riscv::CSR_MHPM_COUNTER_6H,
             riscv::CSR_MHPM_COUNTER_7H,
             riscv::CSR_MHPM_COUNTER_8H :begin
-        if (riscv::XLEN == 32)
+        if (CVA6Cfg.XLEN == 32)
           data_o = generic_counter_q[addr_i-riscv::CSR_MHPM_COUNTER_3H+1][63:32];
         else read_access_exception = 1'b1;
       end
@@ -254,7 +255,7 @@ module perf_counters
             riscv::CSR_HPM_COUNTER_6,
             riscv::CSR_HPM_COUNTER_7,
             riscv::CSR_HPM_COUNTER_8  :begin
-        if (riscv::XLEN == 32) data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3+1][31:0];
+        if (CVA6Cfg.XLEN == 32) data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3+1][31:0];
         else data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3+1];
       end
       riscv::CSR_HPM_COUNTER_3H,
@@ -263,7 +264,7 @@ module perf_counters
             riscv::CSR_HPM_COUNTER_6H,
             riscv::CSR_HPM_COUNTER_7H,
             riscv::CSR_HPM_COUNTER_8H :begin
-        if (riscv::XLEN == 32)
+        if (CVA6Cfg.XLEN == 32)
           data_o = generic_counter_q[addr_i-riscv::CSR_HPM_COUNTER_3H+1][63:32];
         else read_access_exception = 1'b1;
       end
@@ -283,7 +284,7 @@ module perf_counters
             riscv::CSR_MHPM_COUNTER_6,
             riscv::CSR_MHPM_COUNTER_7,
             riscv::CSR_MHPM_COUNTER_8  :begin
-          if (riscv::XLEN == 32)
+          if (CVA6Cfg.XLEN == 32)
             generic_counter_d[addr_i-riscv::CSR_MHPM_COUNTER_3+1][31:0] = data_i;
           else generic_counter_d[addr_i-riscv::CSR_MHPM_COUNTER_3+1] = data_i;
         end
@@ -293,7 +294,7 @@ module perf_counters
             riscv::CSR_MHPM_COUNTER_6H,
             riscv::CSR_MHPM_COUNTER_7H,
             riscv::CSR_MHPM_COUNTER_8H :begin
-          if (riscv::XLEN == 32)
+          if (CVA6Cfg.XLEN == 32)
             generic_counter_d[addr_i-riscv::CSR_MHPM_COUNTER_3H+1][63:32] = data_i;
           else update_access_exception = 1'b1;
         end

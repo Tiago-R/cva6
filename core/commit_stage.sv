@@ -38,24 +38,26 @@ module commit_stage
     input scoreboard_entry_t [CVA6Cfg.NrCommitPorts-1:0] commit_instr_i,
     // Acknowledge that we are indeed committing - ISSUE_STAGE
     output logic [CVA6Cfg.NrCommitPorts-1:0] commit_ack_o,
+    // Acknowledge that we are indeed committing - CSR_REGFILE
+    output logic [CVA6Cfg.NrCommitPorts-1:0] commit_macro_ack_o,
     // Register file write address - ISSUE_STAGE
     output logic [CVA6Cfg.NrCommitPorts-1:0][4:0] waddr_o,
     // Register file write data - ISSUE_STAGE
-    output logic [CVA6Cfg.NrCommitPorts-1:0][riscv::XLEN-1:0] wdata_o,
+    output logic [CVA6Cfg.NrCommitPorts-1:0][CVA6Cfg.XLEN-1:0] wdata_o,
     // Register file write enable - ISSUE_STAGE
     output logic [CVA6Cfg.NrCommitPorts-1:0] we_gpr_o,
     // Floating point register enable - ISSUE_STAGE
     output logic [CVA6Cfg.NrCommitPorts-1:0] we_fpr_o,
     // Result of AMO operation - CACHE
     input amo_resp_t amo_resp_i,
-    // TO_BE_COMPLETED - FRONTEND_CSR
-    output logic [riscv::VLEN-1:0] pc_o,
+    // TO_BE_COMPLETED - FRONTEND_CSR_REGFILE
+    output logic [CVA6Cfg.VLEN-1:0] pc_o,
     // Decoded CSR operation - CSR_REGFILE
     output fu_op csr_op_o,
     // Data to write to CSR - CSR_REGFILE
-    output riscv::xlen_t csr_wdata_o,
+    output logic [CVA6Cfg.XLEN-1:0] csr_wdata_o,
     // Data to read from CSR - CSR_REGFILE
-    input riscv::xlen_t csr_rdata_i,
+    input logic [CVA6Cfg.XLEN-1:0] csr_rdata_i,
     // Exception or interrupt occurred in CSR stage (the same as commit) - CSR_REGFILE
     input exception_t csr_exception_i,
     // Write the fflags CSR - CSR_REGFILE
@@ -65,7 +67,7 @@ module commit_stage
     // Commit buffer of LSU is ready - EX_STAGE
     input logic commit_lsu_ready_i,
     // Transaction id of first commit port - ID_STAGE
-    output logic [TRANS_ID_BITS-1:0] commit_tran_id_o,
+    output logic [CVA6Cfg.TRANS_ID_BITS-1:0] commit_tran_id_o,
     // Valid AMO in commit stage - EX_STAGE
     output logic amo_valid_commit_o,
     // no store is pending - EX_STAGE
@@ -79,7 +81,9 @@ module commit_stage
     // Request a pipeline flush - CONTROLLER
     output logic flush_commit_o,
     // Flush TLBs and pipeline - CONTROLLER
-    output logic sfence_vma_o
+    output logic sfence_vma_o,
+    output logic hfence_vvma_o,
+    output logic hfence_gvma_o
 );
 
   // ila_0 i_ila_commit (
@@ -116,6 +120,7 @@ module commit_stage
   assign commit_tran_id_o = commit_instr_i[0].trans_id;
 
   logic instr_0_is_amo;
+  logic [CVA6Cfg.NrCommitPorts-1:0] commit_macro_ack;
   assign instr_0_is_amo = is_amo(commit_instr_i[0].op);
   // -------------------
   // Commit Instruction
@@ -124,6 +129,7 @@ module commit_stage
   always_comb begin : commit
     // default assignments
     commit_ack_o[0] = 1'b0;
+    commit_macro_ack[0] = 1'b0;
 
     amo_valid_commit_o = 1'b0;
 
@@ -132,18 +138,23 @@ module commit_stage
     commit_lsu_o = 1'b0;
     commit_csr_o = 1'b0;
     // amos will commit on port 0
-    wdata_o[0] = (CVA6Cfg.RVA && amo_resp_i.ack) ? amo_resp_i.result[riscv::XLEN-1:0] : commit_instr_i[0].result;
+    wdata_o[0] = (CVA6Cfg.RVA && amo_resp_i.ack) ? amo_resp_i.result[CVA6Cfg.XLEN-1:0] : commit_instr_i[0].result;
     csr_op_o = ADD;  // this corresponds to a CSR NOP
-    csr_wdata_o = {riscv::XLEN{1'b0}};
+    csr_wdata_o = {CVA6Cfg.XLEN{1'b0}};
     fence_i_o = 1'b0;
     fence_o = 1'b0;
     sfence_vma_o = 1'b0;
+    hfence_vvma_o = 1'b0;
+    hfence_gvma_o = 1'b0;
     csr_write_fflags_o = 1'b0;
     flush_commit_o = 1'b0;
 
     // we will not commit the instruction if we took an exception
     // and we do not commit the instruction if we requested a halt
     if (commit_instr_i[0].valid && !commit_instr_i[0].ex.valid && !halt_i) begin
+      if (CVA6Cfg.RVZCMP && commit_instr_i[0].is_macro_instr && commit_instr_i[0].is_last_macro_instr)
+        commit_macro_ack[0] = 1'b1;
+      else commit_macro_ack[0] = 1'b0;
       // we can definitely write the register file
       // if the instruction is not committing anything the destination
       commit_ack_o[0] = 1'b1;
@@ -169,7 +180,7 @@ module commit_stage
       if (CVA6Cfg.FpPresent) begin
         if (commit_instr_i[0].fu inside {FPU, FPU_VEC}) begin
           // write the CSR with potential exception flags from retiring floating point instruction
-          csr_wdata_o = {{riscv::XLEN - 5{1'b0}}, commit_instr_i[0].ex.cause[4:0]};
+          csr_wdata_o = {{CVA6Cfg.XLEN - 5{1'b0}}, commit_instr_i[0].ex.cause[4:0]};
           csr_write_fflags_o = 1'b1;
           commit_ack_o[0] = 1'b1;
         end
@@ -201,6 +212,30 @@ module commit_stage
       if (CVA6Cfg.RVS && commit_instr_i[0].op == SFENCE_VMA) begin
         // no store pending so we can flush the TLBs and pipeline
         sfence_vma_o = no_st_pending_i;
+        // wait for the store buffer to drain until flushing the pipeline
+        commit_ack_o[0] = no_st_pending_i;
+      end
+      // ------------------
+      // HFENCE.VVMA Logic
+      // ------------------
+      // hfence.vvma is idempotent so we can safely re-execute it after returning
+      // from interrupt service routine
+      // check if this instruction was a HFENCE_VVMA
+      if (CVA6Cfg.RVH && commit_instr_i[0].op == HFENCE_VVMA) begin
+        // no store pending so we can flush the TLBs and pipeline
+        hfence_vvma_o   = no_st_pending_i;
+        // wait for the store buffer to drain until flushing the pipeline
+        commit_ack_o[0] = no_st_pending_i;
+      end
+      // ------------------
+      // HFENCE.GVMA Logic
+      // ------------------
+      // hfence.gvma is idempotent so we can safely re-execute it after returning
+      // from interrupt service routine
+      // check if this instruction was a HFENCE_GVMA
+      if (CVA6Cfg.RVH && commit_instr_i[0].op == HFENCE_GVMA) begin
+        // no store pending so we can flush the TLBs and pipeline
+        hfence_gvma_o   = no_st_pending_i;
         // wait for the store buffer to drain until flushing the pipeline
         commit_ack_o[0] = no_st_pending_i;
       end
@@ -264,6 +299,10 @@ module commit_stage
           if (CVA6Cfg.FpPresent && ariane_pkg::is_rd_fpr(commit_instr_i[1].op)) we_fpr_o[1] = 1'b1;
           else we_gpr_o[1] = 1'b1;
 
+          if (commit_instr_i[1].is_macro_instr && commit_instr_i[1].is_last_macro_instr)
+            commit_macro_ack[1] = 1'b1;
+          else commit_macro_ack[1] = 1'b0;
+
           commit_ack_o[1] = 1'b1;
 
           // additionally check if we are retiring an FPU instruction because we need to make sure that we write all
@@ -271,16 +310,19 @@ module commit_stage
           if (CVA6Cfg.FpPresent && commit_instr_i[1].fu inside {FPU, FPU_VEC}) begin
             if (csr_write_fflags_o)
               csr_wdata_o = {
-                {riscv::XLEN - 5{1'b0}},
+                {CVA6Cfg.XLEN - 5{1'b0}},
                 (commit_instr_i[0].ex.cause[4:0] | commit_instr_i[1].ex.cause[4:0])
               };
-            else csr_wdata_o = {{riscv::XLEN - 5{1'b0}}, commit_instr_i[1].ex.cause[4:0]};
+            else csr_wdata_o = {{CVA6Cfg.XLEN - 5{1'b0}}, commit_instr_i[1].ex.cause[4:0]};
 
             csr_write_fflags_o = 1'b1;
           end
         end
       end
     end
+    if (CVA6Cfg.RVZCMP)
+      commit_macro_ack_o = (commit_instr_i[0].is_macro_instr || commit_instr_i[1].is_macro_instr) ? commit_macro_ack : commit_ack_o;
+    else commit_macro_ack_o = commit_ack_o;
   end
 
   // -----------------------------
@@ -294,6 +336,10 @@ module commit_stage
     exception_o.valid = 1'b0;
     exception_o.cause = '0;
     exception_o.tval  = '0;
+    exception_o.tval2 = '0;
+    exception_o.tinst = '0;
+    exception_o.gva   = 1'b0;
+
     // we need a valid instruction in the commit stage
     if (commit_instr_i[0].valid) begin
       // ------------------------
@@ -305,6 +351,11 @@ module commit_stage
         // the instruction bits from the ID stage. If a earlier exception happened we don't care
         // as we will overwrite it anyway in the next IF bl
         exception_o.tval = commit_instr_i[0].ex.tval;
+        if (CVA6Cfg.RVH) begin
+          exception_o.tinst = commit_instr_i[0].ex.tinst;
+          exception_o.tval2 = commit_instr_i[0].ex.tval2;
+          exception_o.gva   = commit_instr_i[0].ex.gva;
+        end
       end
       // ------------------------
       // Earlier Exceptions

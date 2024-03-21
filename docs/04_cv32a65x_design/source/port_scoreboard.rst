@@ -76,7 +76,7 @@
      - out
      - rs1 operand
      - issue_read_operands
-     - riscv::xlen_t
+     - logic[CVA6Cfg.XLEN-1:0]
 
    * - ``rs1_valid_o``
      - out
@@ -94,7 +94,7 @@
      - out
      - rs2 operand
      - issue_read_operands
-     - riscv::xlen_t
+     - logic[CVA6Cfg.XLEN-1:0]
 
    * - ``rs2_valid_o``
      - out
@@ -124,7 +124,7 @@
      - out
      - TO_BE_COMPLETED
      - TO_BE_COMPLETED
-     - ariane_pkg::scoreboard_entry_t[CVA6Cfg.NrCommitPorts-1:0]
+     - scoreboard_entry_t[CVA6Cfg.NrCommitPorts-1:0]
 
    * - ``commit_ack_i``
      - in
@@ -136,7 +136,7 @@
      - in
      - TO_BE_COMPLETED
      - TO_BE_COMPLETED
-     - ariane_pkg::scoreboard_entry_t
+     - scoreboard_entry_t
 
    * - ``orig_instr_i``
      - in
@@ -178,25 +178,25 @@
      - in
      - TO_BE_COMPLETED
      - TO_BE_COMPLETED
-     - ariane_pkg::bp_resolve_t
+     - bp_resolve_t
 
    * - ``trans_id_i``
      - in
      - Transaction ID at which to write the result back
      - TO_BE_COMPLETED
-     - logic[CVA6Cfg.NrWbPorts-1:0][ariane_pkg::TRANS_ID_BITS-1:0]
+     - logic[CVA6Cfg.NrWbPorts-1:0][CVA6Cfg.TRANS_ID_BITS-1:0]
 
    * - ``wbdata_i``
      - in
      - Results to write back
      - TO_BE_COMPLETED
-     - logic[CVA6Cfg.NrWbPorts-1:0][riscv::XLEN-1:0]
+     - logic[CVA6Cfg.NrWbPorts-1:0][CVA6Cfg.XLEN-1:0]
 
    * - ``ex_i``
      - in
      - Exception from a functional unit (e.g.: ld/st exception)
      - TO_BE_COMPLETED
-     - ariane_pkg::exception_t[CVA6Cfg.NrWbPorts-1:0]
+     - exception_t[CVA6Cfg.NrWbPorts-1:0]
 
    * - ``wt_valid_i``
      - in

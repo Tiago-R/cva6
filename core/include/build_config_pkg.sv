@@ -1,8 +1,10 @@
 package build_config_pkg;
 
   function automatic config_pkg::cva6_cfg_t build_config(config_pkg::cva6_user_cfg_t CVA6Cfg);
-    bit RVF = (riscv::IS_XLEN64 | riscv::IS_XLEN32) & CVA6Cfg.FpuEn;
-    bit RVD = (riscv::IS_XLEN64 ? 1 : 0) & CVA6Cfg.FpuEn;
+    bit IS_XLEN32 = (CVA6Cfg.XLEN == 32) ? 1'b1 : 1'b0;
+    bit IS_XLEN64 = (CVA6Cfg.XLEN == 32) ? 1'b0 : 1'b1;
+    bit RVF = (IS_XLEN64 | IS_XLEN32) & CVA6Cfg.FpuEn;
+    bit RVD = (IS_XLEN64 ? 1 : 0) & CVA6Cfg.FpuEn;
     bit FpPresent = RVF | RVD | CVA6Cfg.XF16 | CVA6Cfg.XF16ALT | CVA6Cfg.XF8;
     bit NSX = CVA6Cfg.XF16 | CVA6Cfg.XF16ALT | CVA6Cfg.XF8 | CVA6Cfg.XFVec;  // Are non-standard extensions present?
     int unsigned FLen = RVD ? 64 :  // D ext.
@@ -21,8 +23,23 @@ package build_config_pkg;
     bit EnableAccelerator = CVA6Cfg.RVV;  // Currently only used by V extension (Ara)
     int unsigned NrWbPorts = (CVA6Cfg.CvxifEn || EnableAccelerator) ? 5 : 4;
 
+    int unsigned ICACHE_INDEX_WIDTH = $clog2(CVA6Cfg.IcacheByteSize / CVA6Cfg.IcacheSetAssoc);
+    int unsigned DCACHE_INDEX_WIDTH = $clog2(CVA6Cfg.DcacheByteSize / CVA6Cfg.DcacheSetAssoc);
+    int unsigned DCACHE_OFFSET_WIDTH = $clog2(CVA6Cfg.DcacheLineWidth / 8);
+
     config_pkg::cva6_cfg_t cfg;
 
+    cfg.XLEN = CVA6Cfg.XLEN;
+    cfg.VLEN = (CVA6Cfg.XLEN == 32) ? 32 : 64;
+    cfg.PLEN = (CVA6Cfg.XLEN == 32) ? 34 : 56;
+    cfg.GPLEN = (CVA6Cfg.XLEN == 32) ? 34 : 41;
+    cfg.IS_XLEN32 = IS_XLEN32;
+    cfg.IS_XLEN64 = IS_XLEN64;
+    cfg.XLEN_ALIGN_BYTES = $clog2(CVA6Cfg.XLEN / 8);
+    cfg.ASID_WIDTH = (CVA6Cfg.XLEN == 64) ? 16 : 1;
+    cfg.VMID_WIDTH = (CVA6Cfg.XLEN == 64) ? 14 : 1;
+
+    cfg.FPGA_EN = CVA6Cfg.FPGA_EN;
     cfg.NrCommitPorts = CVA6Cfg.NrCommitPorts;
     cfg.AxiAddrWidth = CVA6Cfg.AxiAddrWidth;
     cfg.AxiDataWidth = CVA6Cfg.AxiDataWidth;
@@ -38,10 +55,14 @@ package build_config_pkg;
     cfg.RVB = CVA6Cfg.RVB;
     cfg.RVV = CVA6Cfg.RVV;
     cfg.RVC = CVA6Cfg.RVC;
+    cfg.RVH = CVA6Cfg.RVH;
     cfg.RVZCB = CVA6Cfg.RVZCB;
+    cfg.RVZCMP = CVA6Cfg.RVZCMP;
     cfg.XFVec = CVA6Cfg.XFVec;
     cfg.CvxifEn = CVA6Cfg.CvxifEn;
     cfg.ZiCondExtEn = CVA6Cfg.ZiCondExtEn;
+    cfg.NR_SB_ENTRIES = CVA6Cfg.NrScoreboardEntries;
+    cfg.TRANS_ID_BITS = $clog2(CVA6Cfg.NrScoreboardEntries);
 
     cfg.RVF = bit'(RVF);
     cfg.RVD = bit'(RVD);
@@ -84,7 +105,41 @@ package build_config_pkg;
     cfg.NonIdemPotenceEn = CVA6Cfg.NrNonIdempotentRules && CVA6Cfg.NonIdempotentLength;
     cfg.AxiBurstWriteEn = CVA6Cfg.AxiBurstWriteEn;
 
+    cfg.ICACHE_SET_ASSOC = CVA6Cfg.IcacheSetAssoc;
+    cfg.ICACHE_SET_ASSOC_WIDTH = $clog2(CVA6Cfg.IcacheSetAssoc);
+    cfg.ICACHE_INDEX_WIDTH = ICACHE_INDEX_WIDTH;
+    cfg.ICACHE_TAG_WIDTH = cfg.PLEN - ICACHE_INDEX_WIDTH;
+    cfg.ICACHE_LINE_WIDTH = CVA6Cfg.IcacheLineWidth;
+    cfg.ICACHE_USER_LINE_WIDTH = (CVA6Cfg.AxiUserWidth == 1) ? 4 : CVA6Cfg.IcacheLineWidth;
+    cfg.DCACHE_SET_ASSOC = CVA6Cfg.DcacheSetAssoc;
+    cfg.DCACHE_SET_ASSOC_WIDTH = $clog2(CVA6Cfg.DcacheSetAssoc);
+    cfg.DCACHE_INDEX_WIDTH = DCACHE_INDEX_WIDTH;
+    cfg.DCACHE_TAG_WIDTH = cfg.PLEN - DCACHE_INDEX_WIDTH;
+    cfg.DCACHE_LINE_WIDTH = CVA6Cfg.DcacheLineWidth;
+    cfg.DCACHE_USER_LINE_WIDTH = (CVA6Cfg.AxiUserWidth == 1) ? 4 : CVA6Cfg.DcacheLineWidth;
+    cfg.DCACHE_USER_WIDTH = CVA6Cfg.AxiUserWidth;
+    cfg.DCACHE_OFFSET_WIDTH = DCACHE_OFFSET_WIDTH;
+    cfg.DCACHE_NUM_WORDS = 2 ** (DCACHE_INDEX_WIDTH - DCACHE_OFFSET_WIDTH);
+
     cfg.DCACHE_MAX_TX = unsigned'(2 ** CVA6Cfg.MemTidWidth);
+
+    cfg.DATA_USER_EN = CVA6Cfg.DataUserEn;
+    cfg.FETCH_USER_WIDTH = CVA6Cfg.FetchUserWidth;
+    cfg.FETCH_USER_EN = CVA6Cfg.FetchUserEn;
+    cfg.AXI_USER_EN = CVA6Cfg.DataUserEn | CVA6Cfg.FetchUserEn;
+
+    cfg.FETCH_WIDTH = 32;
+    cfg.INSTR_PER_FETCH = CVA6Cfg.RVC == 1'b1 ? (cfg.FETCH_WIDTH / 16) : 1;
+    cfg.LOG2_INSTR_PER_FETCH = CVA6Cfg.RVC == 1'b1 ? $clog2(cfg.INSTR_PER_FETCH) : 1;
+
+    cfg.ModeW = (CVA6Cfg.XLEN == 32) ? 1 : 4;
+    cfg.ASIDW = (CVA6Cfg.XLEN == 32) ? 9 : 16;
+    cfg.VMIDW = (CVA6Cfg.XLEN == 32) ? 7 : 14;
+    cfg.PPNW = (CVA6Cfg.XLEN == 32) ? 22 : 44;
+    cfg.GPPNW = (CVA6Cfg.XLEN == 32) ? 22 : 29;
+    cfg.MODE_SV = (CVA6Cfg.XLEN == 32) ? config_pkg::ModeSv32 : config_pkg::ModeSv39;
+    cfg.SV = (cfg.MODE_SV == config_pkg::ModeSv32) ? 32 : 39;
+    cfg.SVX = (cfg.MODE_SV == config_pkg::ModeSv32) ? 34 : 41;
 
     return cfg;
   endfunction
