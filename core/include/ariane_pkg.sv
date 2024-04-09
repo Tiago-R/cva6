@@ -159,6 +159,9 @@ package ariane_pkg;
   // AXI
   // ---------------
 
+  localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(cva6_config_pkg::cva6_cfg);
+  localparam AXI_USER_WIDTH = CVA6Cfg.AxiUserWidth;
+
   typedef enum logic {
     SINGLE_REQ,
     CACHE_LINE_REQ
