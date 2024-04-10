@@ -26,16 +26,16 @@ module ariane_verilog_wrap
   // PMA configuration
   // idempotent region
   parameter int unsigned               NrNonIdempotentRules  =  1,
-  parameter logic [NrMaxRules*64-1:0]  NonIdempotentAddrBase = 64'h00C0000000,
-  parameter logic [NrMaxRules*64-1:0]  NonIdempotentLength   = 64'hFFFFFFFFFF,
+  parameter logic [config_pkg::NrMaxRules*64-1:0]  NonIdempotentAddrBase = 64'h00C0000000,
+  parameter logic [config_pkg::NrMaxRules*64-1:0]  NonIdempotentLength   = 64'hFFFFFFFFFF,
   // executable regions
   parameter int unsigned               NrExecuteRegionRules  =  0,
-  parameter logic [NrMaxRules*64-1:0]  ExecuteRegionAddrBase = '0,
-  parameter logic [NrMaxRules*64-1:0]  ExecuteRegionLength   = '0,
+  parameter logic [config_pkg::NrMaxRules*64-1:0]  ExecuteRegionAddrBase = '0,
+  parameter logic [config_pkg::NrMaxRules*64-1:0]  ExecuteRegionLength   = '0,
   // cacheable regions
   parameter int unsigned               NrCachedRegionRules   =  0,
-  parameter logic [NrMaxRules*64-1:0]  CachedRegionAddrBase  = '0,
-  parameter logic [NrMaxRules*64-1:0]  CachedRegionLength    = '0,
+  parameter logic [config_pkg::NrMaxRules*64-1:0]  CachedRegionAddrBase  = '0,
+  parameter logic [config_pkg::NrMaxRules*64-1:0]  CachedRegionLength    = '0,
   // PMP
   parameter int unsigned               NrPMPEntries          =  8
 ) (
