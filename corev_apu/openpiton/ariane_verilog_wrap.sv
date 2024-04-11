@@ -156,31 +156,36 @@ module ariane_verilog_wrap
   // ariane instance
   /////////////////////////////
 
-  localparam ariane_pkg::ariane_cfg_t ArianeOpenPitonCfg = '{
-    RASDepth:              RASDepth,
-    BTBEntries:            BTBEntries,
-    BHTEntries:            BHTEntries,
+  function automatic config_pkg::cva6_cfg_t build_openpiton_config(config_pkg::cva6_user_cfg_t CVA6UserCfg);
+    config_pkg::cva6_user_cfg_t cfg = CVA6UserCfg;
+    cfg.RASDepth = RASDepth;
+    cfg.BTBEntries = BTBEntries;
+    cfg.BHTEntries = BHTEntries;
     // idempotent region
-    NrNonIdempotentRules:  NrNonIdempotentRules,
-    NonIdempotentAddrBase: NonIdempotentAddrBase,
-    NonIdempotentLength:   NonIdempotentLength,
-    NrExecuteRegionRules:  NrExecuteRegionRules,
-    ExecuteRegionAddrBase: ExecuteRegionAddrBase,
-    ExecuteRegionLength:   ExecuteRegionLength,
+    cfg.NrNonIdempotentRules = NrNonIdempotentRules;
+    cfg.NonIdempotentAddrBas = NonIdempotentAddrBase;
+    cfg.NonIdempotentLength = NonIdempotentLength;
+    cfg.NrExecuteRegionRules = NrExecuteRegionRules;
+    cfg.ExecuteRegionAddrBas = ExecuteRegionAddrBase;
+    cfg.ExecuteRegionLength = ExecuteRegionLength;
     // cached region
-    NrCachedRegionRules:   NrCachedRegionRules,
-    CachedRegionAddrBase:  CachedRegionAddrBase,
-    CachedRegionLength:    CachedRegionLength,
+    cfg.NrCachedRegionRules = NrCachedRegionRules;
+    cfg.CachedRegionAddrBase = CachedRegionAddrBase;
+    cfg.CachedRegionLength = CachedRegionLength;
     // cache config
-    AxiCompliant:          1'b0,
-    SwapEndianess:         SwapEndianess,
+    cfg.AxiCompliant = 1'b0;
+    cfg.SwapEndianess = SwapEndianess;
     // debug
-    DmBaseAddress:         DmBaseAddress,
-    NrPMPEntries:          NrPMPEntries
-  };
+    cfg.DmBaseAddress = DmBaseAddress;
+    cfg.NrPMPEntries = NrPMPEntries;
+    return cfg;
+  endfunction
+
+  localparam config_pkg::cva6_user_cfg_t CVA6UserCfg = build_openpiton_config(cva6_config_pkg::cva6_cfg);
+  localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(CVA6UserCfg);
 
   ariane #(
-    .ArianeCfg ( ArianeOpenPitonCfg ),
+    .CVA6Cfg ( CVA6Cfg ),
     .noc_req_t  ( wt_cache_pkg::l15_req_t ),
     .noc_resp_t ( wt_cache_pkg::l15_rtrn_t )
   ) ariane (
