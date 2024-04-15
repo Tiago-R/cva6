@@ -66,7 +66,7 @@ module perf_counters
     logic [riscv::VLEN-1:0] data;
   } ebs_mem_t;
 
-  ebs_sample_cfg_t            ebs_sample_cfg_d, ebs_sample_cfg_q;
+  riscv::ebs_sample_cfg_t            ebs_sample_cfg_d, ebs_sample_cfg_q;
   logic                       ebs_sample_trigger_d, ebs_sample_trigger_q;
   int unsigned                ebs_sample_index_d, ebs_sample_index_q;
   ebs_mem_t [NR_ENTRIES-1:0]  ebs_mem_q, ebs_mem_d;
