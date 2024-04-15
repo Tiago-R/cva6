@@ -400,7 +400,7 @@ module perf_counters
       ebs_mem_rd_ptr_q  <= '{default:0};
       ebs_mem_cnt_q     <= '{default:0};
       ebs_sample_cfg_q      <= '{default:0};
-      ebs_sample_trigger_q  <= '{default:0};
+      ebs_sample_trigger_q  <= '0;
       ebs_sample_index_q    <= '{default:0};
       ebs_count_sample_q    <= '{default:0};
       ebs_opt_sample_q      <= '{default:0};
