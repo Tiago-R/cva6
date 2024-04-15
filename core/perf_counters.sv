@@ -68,7 +68,6 @@ module perf_counters
 
   ebs_sample_cfg_t            ebs_sample_cfg_d, ebs_sample_cfg_q;
   logic                       ebs_sample_trigger_d, ebs_sample_trigger_q;
-  ariane_pkg::sample_event_t  ebs_sampled_event;
   int unsigned                ebs_sample_index_d, ebs_sample_index_q;
   ebs_mem_t [NR_ENTRIES-1:0]  ebs_mem_q, ebs_mem_d;
   logic                       ebs_mem_full, ebs_mem_empty, ebs_mem_we, ebs_mem_re;
