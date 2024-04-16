@@ -1420,8 +1420,8 @@ module csr_regfile
     //       riscv::PRIV_LVL_U:
     //       privilege_violation = ~mcounteren_q[csr_addr_i[4:0]] & ~scounteren_q[csr_addr_i[4:0]];
     //     endcase
-      end
-    end
+    //   end
+    // end
   end
   // ----------------------
   // CSR Exception Control
