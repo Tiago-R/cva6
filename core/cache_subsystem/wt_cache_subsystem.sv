@@ -63,8 +63,12 @@ module wt_cache_subsystem
     // Invalidations
     input logic [63:0] inval_addr_i,
     input logic inval_valid_i,
-    output logic inval_ready_o
+    output logic inval_ready_o,
     // TODO: interrupt interface
+    // ebs
+    input logic ebs_store_req_i,
+    output logic ebs_store_ack_o,
+    input wt_cache_pkg::dcache_req_t  ebs_store_data_i
 );
 
   logic icache_adapter_data_req, adapter_icache_data_ack, adapter_icache_rtrn_vld;
@@ -148,6 +152,9 @@ module wt_cache_subsystem
       .dcache_data_req_i(dcache_adapter_data_req),
       .dcache_data_ack_o(adapter_dcache_data_ack),
       .dcache_data_i    (dcache_adapter),
+      .ebs_data_req_i   (ebs_store_req_i),
+      .ebs_data_ack_o   (ebs_store_ack_o),
+      .ebs_data_i       (ebs_store_data_i),
       .dcache_rtrn_vld_o(adapter_dcache_rtrn_vld),
       .dcache_rtrn_o    (adapter_dcache),
       .l15_req_o        (noc_req_o),

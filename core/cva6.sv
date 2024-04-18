@@ -394,7 +394,9 @@ module cva6
   logic                                                     icache_miss_cache_perf;
   logic             [   NumPorts-1:0][DCACHE_SET_ASSOC-1:0] miss_vld_bits;
   logic                                                     stall_issue;
-  logic                                                     ebs_mem_flush;
+  logic                                                     ebs_store_req;
+  logic                                                     ebs_store_ack;
+  wt_cache_pkg::dcache_req_t                                ebs_store_data;
   // --------------
   // CTRL <-> *
   // --------------
@@ -905,7 +907,9 @@ module cva6
         .instr_count_i      (instret_count_csr_perf),
         .pc_i               (pc_commit),
         .mcountinhibit_i    (mcountinhibit_csr_perf),
-        .ebs_mem_flush_o    (ebs_mem_flush)
+        .ebs_store_req_o    (ebs_store_req),
+        .ebs_store_ack_i    (ebs_store_ack),
+        .ebs_store_data_o   (ebs_store_data)
     );
   end : gen_perf_counter
   else begin : gen_no_perf_counter
@@ -1016,7 +1020,10 @@ module cva6
         .noc_resp_i        (noc_resp_i),
         .inval_addr_i      (inval_addr),
         .inval_valid_i     (inval_valid),
-        .inval_ready_o     (inval_ready)
+        .inval_ready_o     (inval_ready),
+        .ebs_store_req_i   (ebs_store_req),
+        .ebs_store_ack_o   (ebs_store_ack),
+        .ebs_store_data_i  (ebs_store_data)
     );
   end else if (DCACHE_TYPE == int'(config_pkg::HPDCACHE)) begin : gen_cache_hpd
     cva6_hpdcache_subsystem #(
