@@ -55,26 +55,20 @@ module perf_counters
     input  logic [63:0] instr_count_i,
     input logic [31:0] mcountinhibit_i,
     input  logic [riscv::VLEN-1:0] pc_i,
-    output logic ebs_mem_flush_o
+    output logic ebs_store_req_o,
+    input logic ebs_store_ack_i,
+    output wt_cache_pkg::dcache_req_t ebs_store_data_o
 );
-  // fifo to store event-based samples
-  localparam int unsigned NR_ENTRIES = 128;
-  localparam int unsigned BITS_ENTRIES = $clog2(NR_ENTRIES);
 
-  typedef struct packed {
-    logic                   valid;
-    logic [riscv::VLEN-1:0] data;
-  } ebs_mem_t;
+  typedef enum logic [1:0] {
+    IDLE,
+    SAMPLING,
+    STORE_WAIT
+  } ebs_state_e;
+  ebs_state_e ebs_state_d, ebs_state_q;
 
   riscv::ebs_sample_cfg_t            ebs_sample_cfg_d, ebs_sample_cfg_q;
-  logic                       ebs_sample_trigger_d, ebs_sample_trigger_q;
-  int unsigned                ebs_sample_index_d, ebs_sample_index_q;
-  ebs_mem_t [NR_ENTRIES-1:0]  ebs_mem_q, ebs_mem_d;
-  logic                       ebs_mem_full, ebs_mem_empty, ebs_mem_we, ebs_mem_re;
-  logic [BITS_ENTRIES:0]      ebs_mem_cnt_q, ebs_mem_cnt_d;
-  logic [BITS_ENTRIES-1:0]    ebs_mem_rd_ptr_q, ebs_mem_rd_ptr_d, ebs_mem_wr_ptr_q, ebs_mem_wr_ptr_d;
-
-  assign ebs_mem_full = (ebs_mem_cnt_q[BITS_ENTRIES] == 1'b1);
+  logic [5:0]                ebs_sample_index_d, ebs_sample_index_q;
 
   logic [63:0] generic_counter_d[6:1];
   logic [63:0] generic_counter_q[6:1];
@@ -87,6 +81,9 @@ module perf_counters
   logic [63:0] ebs_opt[31:0];
   logic [63:0] ebs_opt_sample_d[31:0];
   logic [63:0] ebs_opt_sample_q[31:0];
+
+  logic [63:0] ebs_sample [63:0];
+  assign ebs_sample = {ebs_opt_sample_q, ebs_count_sample_q};
 
   //internal signal to keep track of exception
   logic read_access_exception, update_access_exception;
@@ -110,8 +107,7 @@ module perf_counters
   logic [63:0] count_offset_d[8:0];
   logic [63:0] count_offset_q[8:0];
 
-  logic [63:0] mmaped_addr_d;
-  logic [63:0] mmaped_addr_q;
+  logic [63:0] mmaped_addr_d, mmaped_addr_q, mmaped_offset_d, mmaped_offset_q;
 
   //Multiplexer
   always_comb begin : Mux
@@ -334,57 +330,69 @@ module perf_counters
   // ----------------------
   // Perf Event-Based Sampling Control
   // ----------------------
+  assign ebs_store_data_o.rtype = wt_cache_pkg::DCACHE_STORE_REQ;
+  assign ebs_store_data_o.tid = 1;
+  assign ebs_store_data_o.nc = 1'b1;
+  assign ebs_store_data_o.way = 'b0;
+  assign ebs_store_data_o.data = ebs_sample[ebs_sample_index_q];
+  assign ebs_store_data_o.paddr = mmaped_addr_q + mmaped_addr_q; //TODO_INESC: increment paddr
+  assign ebs_store_data_o.user = 'b0;
+  assign ebs_store_data_o.size = 3'b011;
+  assign ebs_store_data_o.amo_op = ariane_pkg::AMO_NONE;
+
   always_comb begin: ebs
-    ebs_sample_trigger_d = ebs_sample_trigger_q;
+    ebs_state_d = ebs_state_q;
+    mmaped_offset_d = mmaped_offset_q;
+    ebs_store_req_o = 1'b0;
     count_offset_d = count_offset_q;
     ebs_sample_index_d = ebs_sample_index_q;
     ebs_count_sample_d = ebs_count_sample_q;
     ebs_opt_sample_d = ebs_opt_sample_q;
-    ebs_mem_d = ebs_mem_q;
-    ebs_mem_cnt_d = ebs_mem_cnt_q;
-    ebs_mem_we = 1'b0;
-    ebs_mem_re = 1'b0;
 
-    // Trigger event-based sample mechanism
-    if (!ebs_sample_trigger_q) begin
-      for(int unsigned i = 0; i <= 8; i++) begin
-        if ((ebs_count[i] >= threshold_q[i] + count_offset_q[i]) && (threshold_q[i] != 64'b0)) begin
-          ebs_sample_trigger_d = 1'b1;
-          count_offset_d[i] = ebs_count[i];
+    unique case (ebs_state_q)
+      IDLE: begin
+        for(int unsigned i = 0; i <= 8; i++) begin
+          if ((ebs_count[i] >= threshold_q[i] + count_offset_q[i]) && (threshold_q[i] != 64'b0)) begin
+            ebs_state_d = SAMPLING;
+            count_offset_d[i] = ebs_count[i];
+            ebs_count_sample_d = ebs_count;
+            ebs_opt_sample_d = ebs_opt;
+          end
         end
       end
-      ebs_count_sample_d = ebs_count;
-      ebs_opt_sample_d = ebs_opt;
-    end
-
-    // TODO_INESC: sampling cycle until all data is saved
-    if (ebs_sample_trigger_q) begin
-      if (ebs_sample_cfg_q[ebs_sample_index_q]) begin
-        if (ebs_sample_index_q > 31) begin // sample active option signals
-          ebs_mem_d[ebs_mem_wr_ptr_q] = { 1'b1,                                           // valid
-                                          ebs_opt_sample_q[ebs_sample_index_q - 6'd32]};  // sampled optional signal
-          ebs_mem_we = 1'b1;
-        end else begin // sample active counters count
-          ebs_mem_d[ebs_mem_wr_ptr_q] = { 1'b1,                                     // valid
-                                          ebs_count_sample_q[ebs_sample_index_q]};  // sampled counter count
-          ebs_mem_we = 1'b1;
+      SAMPLING: begin
+        if (ebs_sample_cfg_q[ebs_sample_index_q]) begin
+          ebs_store_req_o = 1'b1;
+          if (!ebs_store_ack_i) begin
+            ebs_state_d = STORE_WAIT;
+          end else begin
+            ebs_sample_index_d = ebs_sample_index_q + 1'b1;
+            mmaped_offset_d = mmaped_offset_q + 64'd8;
+            if (ebs_sample_index_q == 6'd63) begin
+              ebs_state_d = IDLE;
+            end
+          end
+        end else begin
+          ebs_sample_index_d = ebs_sample_index_q + 1'b1;
+          if (ebs_sample_index_q == 6'd63) begin
+            ebs_state_d = IDLE;
+          end
         end
       end
-      ebs_sample_index_d = ebs_sample_index_q + 1'b1;
-      if (ebs_sample_index_q == 6'd63) begin
-        ebs_sample_trigger_d = 1'b0;
+      STORE_WAIT: begin
+        ebs_store_req_o = 1'b1;
+        if (ebs_store_ack_i) begin
+          ebs_sample_index_d = ebs_sample_index_q + 1'b1;
+          mmaped_offset_d = mmaped_offset_q + 64'd8;
+          ebs_state_d = (ebs_sample_index_q == 6'd63) ? IDLE : SAMPLING;
+        end
       end
-
-      ebs_mem_cnt_d = ebs_mem_cnt_q - ebs_mem_re + ebs_mem_we;
-      ebs_mem_rd_ptr_d = ebs_mem_rd_ptr_q + ebs_mem_re;
-      ebs_mem_wr_ptr_d = ebs_mem_wr_ptr_q + ebs_mem_we;
-    end
-    // TODO_INESC: flush fifo to main memory once it gets close to full
-
-    if (ebs_mem_cnt_q >= NR_ENTRIES/4*3) begin
-      ebs_mem_flush_o = 1'b1;
-    end
-
+      default: begin
+        // we should never get here
+        state_d = IDLE;
+        ebs_sample_index_d = 6'b0;
+      end
+    endcase
   end
 
   //Registers
@@ -394,31 +402,25 @@ module perf_counters
       mhpmevent_q       <= '{default: 0};
       threshold_q       <= '{default:0};
       mmaped_addr_q     <= '{default:0};
+      mmaped_offset_q     <= '{default:0};
       count_offset_q    <= '{default:0};
-      ebs_mem_q         <= '{default:ebs_mem_t'(0)};
-      ebs_mem_wr_ptr_q  <= '{default:0};
-      ebs_mem_rd_ptr_q  <= '{default:0};
-      ebs_mem_cnt_q     <= '{default:0};
       ebs_sample_cfg_q      <= '{default:0};
-      ebs_sample_trigger_q  <= '0;
       ebs_sample_index_q    <= '{default:0};
       ebs_count_sample_q    <= '{default:0};
       ebs_opt_sample_q      <= '{default:0};
+      ebs_state_q           <= IDLE;
     end else begin
       generic_counter_q <= generic_counter_d;
       mhpmevent_q       <= mhpmevent_d;
       threshold_q       <= threshold_d;
       mmaped_addr_q     <= mmaped_addr_d;
+      mmaped_offset_q   <= mmaped_offset_d;
       count_offset_q    <= count_offset_d;
-      ebs_mem_q         <= ebs_mem_d;
-      ebs_mem_wr_ptr_q  <= ebs_mem_wr_ptr_d;
-      ebs_mem_rd_ptr_q  <= ebs_mem_rd_ptr_d;
-      ebs_mem_cnt_q     <= ebs_mem_cnt_d;
       ebs_sample_cfg_q      <= ebs_sample_cfg_d;
-      ebs_sample_trigger_q  <= ebs_sample_trigger_d;
       ebs_sample_index_q    <= ebs_sample_index_d;
       ebs_count_sample_q    <= ebs_count_sample_d;
       ebs_opt_sample_q      <= ebs_opt_sample_d;
+      ebs_state_q           <= ebs_state_d;
     end
   end
 
