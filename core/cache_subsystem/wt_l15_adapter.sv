@@ -132,9 +132,9 @@ module wt_l15_adapter
   assign l15_req_o.l15_invalidate_cacheline = '0; // unused by Ariane as L1 has no ECC at the moment
   assign l15_req_o.l15_blockstore = '0;  // unused in openpiton
   assign l15_req_o.l15_blockinitstore = '0;  // unused in openpiton
-  assign l15_req_o.l15_l1rplway = (arb_idx==2'b01) ? dcache_data.way : (arb_idx==2'b00) icache_data.way : ebs_data.way;
+  assign l15_req_o.l15_l1rplway = (arb_idx==2'b01) ? dcache_data.way : (arb_idx==2'b00) ? icache_data.way : ebs_data.way;
 
-  assign l15_req_o.l15_address = (arb_idx==2'b01) ? dcache_data.paddr : (arb_idx==2'b00) icache_data.paddr : ebs_data.paddr;
+  assign l15_req_o.l15_address = (arb_idx==2'b01) ? dcache_data.paddr : (arb_idx==2'b00) ? icache_data.paddr : ebs_data.paddr;
 
   assign l15_req_o.l15_data_next_entry      = '0; // unused in Ariane (only used for CAS atomic requests)
   assign l15_req_o.l15_csm_data             = '0; // unused in Ariane (only used for coherence domain restriction features)
