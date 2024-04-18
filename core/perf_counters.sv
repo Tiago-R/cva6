@@ -83,7 +83,7 @@ module perf_counters
   logic [63:0] ebs_opt_sample_q[31:0];
 
   logic [63:0] ebs_sample [63:0];
-  assign ebs_sample = {ebs_opt_sample_q, ebs_count_sample_q};
+  assign ebs_sample = {ebs_opt_sample_q, 1472'b0,ebs_count_sample_q}; // 23 unused programmable counters. 23*64b = 1472b
 
   //internal signal to keep track of exception
   logic read_access_exception, update_access_exception;
