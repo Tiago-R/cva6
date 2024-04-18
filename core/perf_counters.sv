@@ -389,7 +389,7 @@ module perf_counters
       end
       default: begin
         // we should never get here
-        state_d = IDLE;
+        ebs_state_d = IDLE;
         ebs_sample_index_d = 6'b0;
       end
     endcase
