@@ -46,7 +46,7 @@ package wt_cache_pkg;
   localparam L1D_WAY_WIDTH = $clog2(ariane_pkg::DCACHE_SET_ASSOC);
 
   // FIFO depths of L15 adapter
-  localparam ADAPTER_REQ_FIFO_DEPTH = 3;
+  localparam ADAPTER_REQ_FIFO_DEPTH = 2;
   localparam ADAPTER_RTRN_FIFO_DEPTH = 2;
 
 
