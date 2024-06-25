@@ -763,7 +763,15 @@ package riscv;
   } ebs_sample_opt_t;
 
   typedef struct packed {
-      logic [63:32]   options;
+      logic [63:56]   reserved;
+      logic [55:51]   reg_addr3;
+      logic [50:46]   reg_addr2;
+      logic [45:41]   reg_addr1;
+      logic [40:36]   reg_addr0;
+      logic           reg3;
+      logic           reg2;
+      logic           reg1;
+      logic           reg0;
       logic [31:0]    active_counters;
   } ebs_sample_cfg_t;
 

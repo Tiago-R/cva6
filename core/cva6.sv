@@ -397,6 +397,8 @@ module cva6
   logic                                                     ebs_store_req;
   logic                                                     ebs_store_ack;
   wt_cache_pkg::dcache_req_t                                ebs_store_data;
+  logic [3:0][4:0]                                          ebs_regfile_opts;
+  logic [3:0][riscv::XLEN-1:0]                              ebs_regfile_data;
   // --------------
   // CTRL <-> *
   // --------------
@@ -640,6 +642,8 @@ module cva6
       .commit_ack_i       (commit_ack),
       // Performance Counters
       .stall_issue_o      (stall_issue),
+      .ebs_regfile_opts_i (ebs_regfile_opts),
+      .ebs_regfile_data_o (ebs_regfile_data),
       //RVFI
       .lsu_addr_i         (lsu_addr),
       .lsu_rmask_i        (lsu_rmask),
@@ -909,7 +913,9 @@ module cva6
         .mcountinhibit_i    (mcountinhibit_csr_perf),
         .ebs_store_req_o    (ebs_store_req),
         .ebs_store_ack_i    (ebs_store_ack),
-        .ebs_store_data_o   (ebs_store_data)
+        .ebs_store_data_o   (ebs_store_data),
+        .ebs_regfile_opts_o (ebs_regfile_opts),
+        .ebs_regfile_data_i (ebs_regfile_data)
     );
   end : gen_perf_counter
   else begin : gen_no_perf_counter

@@ -57,7 +57,9 @@ module perf_counters
     input  logic [riscv::VLEN-1:0] pc_i,
     output logic ebs_store_req_o,
     input logic ebs_store_ack_i,
-    output wt_cache_pkg::dcache_req_t ebs_store_data_o
+    output wt_cache_pkg::dcache_req_t ebs_store_data_o,
+    output logic [3:0][4:0] ebs_regfile_opts_o,
+    output logic [3:0][riscv::XLEN-1:0] ebs_regfile_data_i
 );
 
   typedef enum logic [1:0] {
@@ -67,7 +69,7 @@ module perf_counters
   } ebs_state_e;
   ebs_state_e ebs_state_d, ebs_state_q;
 
-  riscv::ebs_sample_cfg_t            ebs_sample_cfg_d, ebs_sample_cfg_q;
+  riscv::ebs_sample_cfg_t    ebs_sample_cfg_d, ebs_sample_cfg_q;
   logic [5:0]                ebs_sample_index_d, ebs_sample_index_q;
 
   logic [63:0] generic_counter_d[6:1];
@@ -76,15 +78,22 @@ module perf_counters
   logic [63:0] ebs_count[8:0];
   logic [63:0] ebs_count_sample_d[8:0];
   logic [63:0] ebs_count_sample_q[8:0];
-  assign ebs_count = {generic_counter_q, instr_count_i, 64'b0, cycle_count_i};
+  // assign ebs_count = {generic_counter_q, instr_count_i, 64'b0, cycle_count_i};
+  assign ebs_count[8:3] = generic_counter_q[6:1];
+  assign ebs_count[2] = instr_count_i;
+  assign ebs_count[1] = 64'b0;
+  assign ebs_count[0] = cycle_count_i;
 
-  logic [63:0] ebs_opt[31:0];
-  logic [63:0] ebs_opt_sample_d[31:0];
-  logic [63:0] ebs_opt_sample_q[31:0];
+  logic [63:0] ebs_opt[3:0];
+  assign ebs_opt[0] = ebs_regfile_data_i[0];
+  assign ebs_opt[1] = ebs_regfile_data_i[1];
+  assign ebs_opt[2] = ebs_regfile_data_i[2];
+  assign ebs_opt[3] = ebs_regfile_data_i[3];
+  logic [63:0] ebs_opt_sample_d[3:0];
+  logic [63:0] ebs_opt_sample_q[3:0];
 
-  logic [63:0] ebs_sample [63:0];
-  assign ebs_sample[63:32] = ebs_opt_sample_q; // 23 unused programmable counters. 23*64b = 1472b
-  assign ebs_sample[31:9] = '{23{0}};
+  logic [63:0] ebs_sample [12:0];
+  assign ebs_sample[12:9] = ebs_opt_sample_q;
   assign ebs_sample[8:0] = ebs_count_sample_q;
 
   //internal signal to keep track of exception
@@ -342,6 +351,11 @@ module perf_counters
   assign ebs_store_data_o.size = 3'b011;
   assign ebs_store_data_o.amo_op = ariane_pkg::AMO_NONE;
 
+  assign ebs_regfile_opts_o[0] = ebs_sample_cfg_q.reg_addr0;
+  assign ebs_regfile_opts_o[1] = ebs_sample_cfg_q.reg_addr1;
+  assign ebs_regfile_opts_o[2] = ebs_sample_cfg_q.reg_addr2;
+  assign ebs_regfile_opts_o[3] = ebs_sample_cfg_q.reg_addr3;
+
   always_comb begin: ebs
     ebs_state_d = ebs_state_q;
     mmaped_offset_d = mmaped_offset_q;
@@ -368,25 +382,41 @@ module perf_counters
           if (!ebs_store_ack_i) begin
             ebs_state_d = STORE_WAIT;
           end else begin
-            ebs_sample_index_d = ebs_sample_index_q + 1'b1;
             mmaped_offset_d = mmaped_offset_q + 64'd8;
-            if (ebs_sample_index_q == 6'd63) begin
+            if (ebs_sample_index_q == 6'd35) begin
+              ebs_sample_index_d = 6'd0;
               ebs_state_d = IDLE;
+            end else if (ebs_sample_index_q == 6'd8) begin
+              ebs_sample_index_d = 6'd32;
+            end else begin
+              ebs_sample_index_d = ebs_sample_index_q + 1'b1;
             end
           end
         end else begin
-          ebs_sample_index_d = ebs_sample_index_q + 1'b1;
-          if (ebs_sample_index_q == 6'd63) begin
-            ebs_state_d = IDLE;
+          if (ebs_sample_index_q == 6'd35) begin
+              ebs_sample_index_d = 6'd0;
+              ebs_state_d = IDLE;
+          end else if (ebs_sample_index_q == 6'd8) begin
+            ebs_sample_index_d = 6'd32;
+          end else begin
+            ebs_sample_index_d = ebs_sample_index_q + 1'b1;
           end
         end
       end
       STORE_WAIT: begin
         ebs_store_req_o = 1'b1;
         if (ebs_store_ack_i) begin
-          ebs_sample_index_d = ebs_sample_index_q + 1'b1;
           mmaped_offset_d = mmaped_offset_q + 64'd8;
-          ebs_state_d = (ebs_sample_index_q == 6'd63) ? IDLE : SAMPLING;
+          if (ebs_sample_index_q == 6'd35) begin
+              ebs_sample_index_d = 6'd0;
+              ebs_state_d = IDLE;
+          end else if (ebs_sample_index_q == 6'd8) begin
+            ebs_sample_index_d = 6'd32;
+            ebs_state_d = SAMPLING;
+          end else begin
+            ebs_sample_index_d = ebs_sample_index_q + 1'b1;
+            ebs_state_d = SAMPLING;
+          end
         end
       end
       default: begin

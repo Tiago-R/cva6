@@ -77,11 +77,13 @@ module issue_read_operands
     input logic [CVA6Cfg.NrCommitPorts-1:0] we_gpr_i,
     input logic [CVA6Cfg.NrCommitPorts-1:0] we_fpr_i,
 
-    output logic stall_issue_o  // stall signal, we do not want to fetch any more entries
+    output logic stall_issue_o,  // stall signal, we do not want to fetch any more entries
     // committing instruction instruction
     // from scoreboard
     // input  scoreboard_entry     commit_instr_i,
     // output logic                commit_ack_o
+    input logic [3:0][4:0] ebs_regfile_opts_i,
+    output logic [3:0][riscv::XLEN-1:0] ebs_regfile_data_o
 );
   logic stall;
   logic fu_busy;  // functional unit is busy
@@ -432,7 +434,9 @@ module issue_read_operands
   // Integer Register File
   // ----------------------
   logic [  CVA6Cfg.NrRgprPorts-1:0][riscv::XLEN-1:0] rdata;
+  logic [CVA6Cfg.NrRgprPorts+4-1:0][riscv::XLEN-1:0] rdata_extended;
   logic [  CVA6Cfg.NrRgprPorts-1:0][            4:0] raddr_pack;
+  logic [CVA6Cfg.NrRgprPorts+4-1:0][            4:0] raddr_pack_extended;
 
   // pack signals
   logic [CVA6Cfg.NrCommitPorts-1:0][            4:0] waddr_pack;
@@ -443,6 +447,8 @@ module issue_read_operands
     assign raddr_pack = {issue_instr_i.result[4:0], issue_instr_i.rs2[4:0], issue_instr_i.rs1[4:0]};
   end else begin : gen_no_rs3
     assign raddr_pack = {issue_instr_i.rs2[4:0], issue_instr_i.rs1[4:0]};
+    assign raddr_pack_extended = {ebs_regfile_opts_i, raddr_pack};
+    assign ebs_regfile_data_o = rdata_extended[CVA6Cfg.NrRgprPorts+4-1:2];
   end
 
   for (genvar i = 0; i < CVA6Cfg.NrCommitPorts; i++) begin : gen_write_back_port
@@ -469,17 +475,18 @@ module issue_read_operands
     ariane_regfile #(
         .CVA6Cfg      (CVA6Cfg),
         .DATA_WIDTH   (riscv::XLEN),
-        .NR_READ_PORTS(CVA6Cfg.NrRgprPorts),
+        .NR_READ_PORTS(CVA6Cfg.NrRgprPorts + 4),
         .ZERO_REG_ZERO(1)
     ) i_ariane_regfile (
         .test_en_i(1'b0),
-        .raddr_i  (raddr_pack),
-        .rdata_o  (rdata),
+        .raddr_i  (raddr_pack_extended),
+        .rdata_o  (rdata_extended),
         .waddr_i  (waddr_pack),
         .wdata_i  (wdata_pack),
         .we_i     (we_pack),
         .*
     );
+    assign rdata = rdata_extended[1:0];
   end
 
   // -----------------------------
