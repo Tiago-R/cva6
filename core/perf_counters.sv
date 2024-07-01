@@ -58,43 +58,12 @@ module perf_counters
     output logic ebs_store_req_o,
     input logic ebs_store_ack_i,
     output wt_cache_pkg::dcache_req_t ebs_store_data_o,
-    output logic [3:0][4:0] ebs_regfile_opts_o,
-    output logic [3:0][riscv::XLEN-1:0] ebs_regfile_data_i
+    output logic [3:0][4:0] ebs_regfile_addr_o,
+    input logic [3:0][riscv::XLEN-1:0] ebs_regfile_data_i
 );
-
-  typedef enum logic [1:0] {
-    IDLE,
-    SAMPLING,
-    STORE_WAIT
-  } ebs_state_e;
-  ebs_state_e ebs_state_d, ebs_state_q;
-
-  riscv::ebs_sample_cfg_t    ebs_sample_cfg_d, ebs_sample_cfg_q;
-  logic [5:0]                ebs_sample_index_d, ebs_sample_index_q;
-
+ 
   logic [63:0] generic_counter_d[6:1];
   logic [63:0] generic_counter_q[6:1];
-
-  logic [63:0] ebs_count[8:0];
-  logic [63:0] ebs_count_sample_d[8:0];
-  logic [63:0] ebs_count_sample_q[8:0];
-  // assign ebs_count = {generic_counter_q, instr_count_i, 64'b0, cycle_count_i};
-  assign ebs_count[8:3] = generic_counter_q[6:1];
-  assign ebs_count[2] = instr_count_i;
-  assign ebs_count[1] = 64'b0;
-  assign ebs_count[0] = cycle_count_i;
-
-  logic [63:0] ebs_opt[3:0];
-  assign ebs_opt[0] = ebs_regfile_data_i[0];
-  assign ebs_opt[1] = ebs_regfile_data_i[1];
-  assign ebs_opt[2] = ebs_regfile_data_i[2];
-  assign ebs_opt[3] = ebs_regfile_data_i[3];
-  logic [63:0] ebs_opt_sample_d[3:0];
-  logic [63:0] ebs_opt_sample_q[3:0];
-
-  logic [63:0] ebs_sample [12:0];
-  assign ebs_sample[12:9] = ebs_opt_sample_q;
-  assign ebs_sample[8:0] = ebs_count_sample_q;
 
   //internal signal to keep track of exception
   logic read_access_exception, update_access_exception;
@@ -103,22 +72,45 @@ module perf_counters
   //internal signal for  MUX select line input
   logic [4:0] mhpmevent_d[6:1];
   logic [4:0] mhpmevent_q[6:1];
-  // internal signal to detect event on multiple commit ports
-  logic [CVA6Cfg.NrCommitPorts-1:0] load_event;
-  logic [CVA6Cfg.NrCommitPorts-1:0] store_event;
-  logic [CVA6Cfg.NrCommitPorts-1:0] branch_event;
-  logic [CVA6Cfg.NrCommitPorts-1:0] call_event;
-  logic [CVA6Cfg.NrCommitPorts-1:0] return_event;
-  logic [CVA6Cfg.NrCommitPorts-1:0] int_event;
-  logic [CVA6Cfg.NrCommitPorts-1:0] fp_event;
 
-  //internal signals for threshold configuration
-  logic [63:0] threshold_d[8:0];
-  logic [63:0] threshold_q[8:0];
-  logic [63:0] count_offset_d[8:0];
-  logic [63:0] count_offset_q[8:0];
+  // ----------------------
+  // Perf Event-Based Sampling Internal Signals
+  // ----------------------
 
+  // registers
+  logic [63:0] threshold_d [8:0], threshold_q[8:0];
+  logic [63:0] count_offset_d[8:0], count_offset_q[8:0];
   logic [63:0] mmaped_addr_d, mmaped_addr_q, mmaped_offset_d, mmaped_offset_q;
+  riscv::ebs_sample_cfg_t    ebs_sample_cfg_d, ebs_sample_cfg_q;
+
+  // state-machine control
+  riscv::ebs_state_e ebs_state_d, ebs_state_q;
+  logic [5:0] ebs_sample_index_d, ebs_sample_index_q;
+  logic ebs_sample_trigger;
+
+  // sample data
+  assign ebs_regfile_addr_o = {ebs_sample_cfg_q.reg_addr3, ebs_sample_cfg_q.reg_addr2, ebs_sample_cfg_q.reg_addr1, ebs_sample_cfg_q.reg_addr0};
+
+  logic [63:0] ebs_counter_data[8:0];
+  logic [63:0] ebs_regfile_data[3:0];
+
+  assign ebs_counter_data = {generic_counter_q[6], generic_counter_q[5], generic_counter_q[4], generic_counter_q[3], generic_counter_q[2], generic_counter_q[1], instr_count_i, 64'b0, cycle_count_i};
+  assign ebs_regfile_data = {ebs_regfile_data_i[3], ebs_regfile_data_i[2], ebs_regfile_data_i[1], ebs_regfile_data_i[0]};
+  
+  logic [63:0] ebs_counter_data_sample_d[8:0], ebs_counter_data_sample_q[8:0];
+  logic [63:0] ebs_regfile_data_sample_d[3:0], ebs_regfile_data_sample_q[3:0];
+
+  // sampled data encoding to cache
+  assign ebs_store_data_o.rtype = wt_cache_pkg::DCACHE_STORE_REQ;
+  assign ebs_store_data_o.tid = 1;
+  assign ebs_store_data_o.nc = 1'b1;
+  assign ebs_store_data_o.way = 'b0;
+  assign ebs_store_data_o.data = (ebs_sample_index_q >= 6'd32) ? ebs_regfile_data_sample_q[ebs_sample_index_q - 6'd32] : (ebs_sample_index_q > 6'd8) ? 64'b0 : ebs_counter_data_sample_q[ebs_sample_index_q];
+  assign ebs_store_data_o.paddr = mmaped_addr_q + mmaped_offset_q; //TODO_INESC: check mmaped csr length
+  assign ebs_store_data_o.user = 'b0;
+  assign ebs_store_data_o.size = 3'b011;
+  assign ebs_store_data_o.amo_op = ariane_pkg::AMO_NONE;
+// ------------------------
 
   //Multiplexer
   always_comb begin : Mux
@@ -341,88 +333,48 @@ module perf_counters
   // ----------------------
   // Perf Event-Based Sampling Control
   // ----------------------
-  assign ebs_store_data_o.rtype = wt_cache_pkg::DCACHE_STORE_REQ;
-  assign ebs_store_data_o.tid = 1;
-  assign ebs_store_data_o.nc = 1'b1;
-  assign ebs_store_data_o.way = 'b0;
-  assign ebs_store_data_o.data = ebs_sample[ebs_sample_index_q];
-  assign ebs_store_data_o.paddr = mmaped_addr_q + mmaped_addr_q; //TODO_INESC: increment paddr
-  assign ebs_store_data_o.user = 'b0;
-  assign ebs_store_data_o.size = 3'b011;
-  assign ebs_store_data_o.amo_op = ariane_pkg::AMO_NONE;
+  always_comb begin: ebs_state
+    ebs_state_d = ebs_state_q;
 
-  assign ebs_regfile_opts_o[0] = ebs_sample_cfg_q.reg_addr0;
-  assign ebs_regfile_opts_o[1] = ebs_sample_cfg_q.reg_addr1;
-  assign ebs_regfile_opts_o[2] = ebs_sample_cfg_q.reg_addr2;
-  assign ebs_regfile_opts_o[3] = ebs_sample_cfg_q.reg_addr3;
+    case(ebs_state_q)
+      riscv::IDLE: begin
+        ebs_state_d = ebs_sample_trigger ? riscv::SAMPLING : riscv::IDLE;
+      end
+      riscv::SAMPLING: begin
+        ebs_state_d = (((!ebs_store_req_o) || (ebs_store_req_o && ebs_store_ack_i)) && (ebs_sample_index_q == 6'd35)) ? riscv::IDLE : riscv::SAMPLING;
+      end
+    endcase
+  end
 
   always_comb begin: ebs
-    ebs_state_d = ebs_state_q;
-    mmaped_offset_d = mmaped_offset_q;
+    ebs_sample_trigger = 1'b0;
     ebs_store_req_o = 1'b0;
+    mmaped_offset_d = mmaped_offset_q;
     count_offset_d = count_offset_q;
     ebs_sample_index_d = ebs_sample_index_q;
-    ebs_count_sample_d = ebs_count_sample_q;
-    ebs_opt_sample_d = ebs_opt_sample_q;
+    ebs_counter_data_sample_d = ebs_counter_data_sample_q;
+    ebs_regfile_data_sample_d = ebs_regfile_data_sample_q;
 
-    unique case (ebs_state_q)
-      IDLE: begin
+    case(ebs_state_q)
+      riscv::IDLE: begin
         for(int unsigned i = 0; i <= 8; i++) begin
-          if ((ebs_count[i] >= threshold_q[i] + count_offset_q[i]) && (threshold_q[i] != 64'b0)) begin
-            ebs_state_d = SAMPLING;
-            count_offset_d[i] = ebs_count[i];
-            ebs_count_sample_d = ebs_count;
-            ebs_opt_sample_d = ebs_opt;
+          if ((ebs_counter_data[i] >= threshold_q[i] + count_offset_q[i]) && (threshold_q[i] > 64'b0)) begin
+            count_offset_d[i] = ebs_counter_data[i];
+            ebs_counter_data_sample_d = ebs_counter_data;
+            ebs_regfile_data_sample_d = ebs_regfile_data;
+            ebs_sample_trigger = 1'b1;
           end
         end
       end
-      SAMPLING: begin
+      riscv::SAMPLING: begin
         if (ebs_sample_cfg_q[ebs_sample_index_q]) begin
           ebs_store_req_o = 1'b1;
-          if (!ebs_store_ack_i) begin
-            ebs_state_d = STORE_WAIT;
-          end else begin
+        end
+        if ((!ebs_store_req_o) || (ebs_store_req_o && ebs_store_ack_i)) begin
+          ebs_sample_index_d = (ebs_sample_index_q == 6'd35) ? 6'd0 : (ebs_sample_index_q == 6'd8) ? 6'd32 : ebs_sample_index_q + 1;
+          if (ebs_store_ack_i)
             mmaped_offset_d = mmaped_offset_q + 64'd8;
-            if (ebs_sample_index_q == 6'd35) begin
-              ebs_sample_index_d = 6'd0;
-              ebs_state_d = IDLE;
-            end else if (ebs_sample_index_q == 6'd8) begin
-              ebs_sample_index_d = 6'd32;
-            end else begin
-              ebs_sample_index_d = ebs_sample_index_q + 1'b1;
-            end
-          end
-        end else begin
-          if (ebs_sample_index_q == 6'd35) begin
-              ebs_sample_index_d = 6'd0;
-              ebs_state_d = IDLE;
-          end else if (ebs_sample_index_q == 6'd8) begin
-            ebs_sample_index_d = 6'd32;
-          end else begin
-            ebs_sample_index_d = ebs_sample_index_q + 1'b1;
-          end
         end
-      end
-      STORE_WAIT: begin
-        ebs_store_req_o = 1'b1;
-        if (ebs_store_ack_i) begin
-          mmaped_offset_d = mmaped_offset_q + 64'd8;
-          if (ebs_sample_index_q == 6'd35) begin
-              ebs_sample_index_d = 6'd0;
-              ebs_state_d = IDLE;
-          end else if (ebs_sample_index_q == 6'd8) begin
-            ebs_sample_index_d = 6'd32;
-            ebs_state_d = SAMPLING;
-          end else begin
-            ebs_sample_index_d = ebs_sample_index_q + 1'b1;
-            ebs_state_d = SAMPLING;
-          end
-        end
-      end
-      default: begin
-        // we should never get here
-        ebs_state_d = IDLE;
-        ebs_sample_index_d = 6'b0;
       end
     endcase
   end
@@ -438,9 +390,9 @@ module perf_counters
       count_offset_q    <= '{default:0};
       ebs_sample_cfg_q      <= '{default:0};
       ebs_sample_index_q    <= '{default:0};
-      ebs_count_sample_q    <= '{default:0};
-      ebs_opt_sample_q      <= '{default:0};
-      ebs_state_q           <= IDLE;
+      ebs_counter_data_sample_q    <= '{default:0};
+      ebs_regfile_data_sample_q      <= '{default:0};
+      ebs_state_q           <= riscv::IDLE;
     end else begin
       generic_counter_q <= generic_counter_d;
       mhpmevent_q       <= mhpmevent_d;
@@ -450,8 +402,8 @@ module perf_counters
       count_offset_q    <= count_offset_d;
       ebs_sample_cfg_q      <= ebs_sample_cfg_d;
       ebs_sample_index_q    <= ebs_sample_index_d;
-      ebs_count_sample_q    <= ebs_count_sample_d;
-      ebs_opt_sample_q      <= ebs_opt_sample_d;
+      ebs_counter_data_sample_q    <= ebs_counter_data_sample_d;
+      ebs_regfile_data_sample_q      <= ebs_regfile_data_sample_d;
       ebs_state_q           <= ebs_state_d;
     end
   end

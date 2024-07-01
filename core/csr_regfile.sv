@@ -95,7 +95,9 @@ module csr_regfile
     // PMPs
     output riscv::pmpcfg_t [15:0] pmpcfg_o,  // PMP configuration containing pmpcfg for max 16 PMPs
     output logic [15:0][riscv::PLEN-3:0] pmpaddr_o,  // PMP addresses
-    output logic [31:0] mcountinhibit_o
+    output logic [31:0] mcountinhibit_o,
+    output logic [63:0] cycle_count_o,
+    output logic [63:0] instret_count_o
 );
   // internal signal to keep track of access exceptions
   logic read_access_exception, update_access_exception, privilege_violation;
@@ -178,6 +180,8 @@ module csr_regfile
   assign csr_addr = riscv::csr_t'(csr_addr_i);
   assign fs_o = mstatus_q.fs;
   assign vs_o = mstatus_q.vs;
+  assign cycle_count_o = cycle_q;
+  assign instret_count_o = instret_q;
   // ----------------
   // CSR Read logic
   // ----------------

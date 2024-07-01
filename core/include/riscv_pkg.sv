@@ -775,6 +775,11 @@ package riscv;
       logic [31:0]    active_counters;
   } ebs_sample_cfg_t;
 
+  typedef enum logic {
+    IDLE,
+    SAMPLING
+  } ebs_state_e;
+
   // PMP
   typedef enum logic [1:0] {
     OFF   = 2'b00,

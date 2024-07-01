@@ -82,7 +82,7 @@ module issue_read_operands
     // from scoreboard
     // input  scoreboard_entry     commit_instr_i,
     // output logic                commit_ack_o
-    input logic [3:0][4:0] ebs_regfile_opts_i,
+    input logic [3:0][4:0] ebs_regfile_addr_i,
     output logic [3:0][riscv::XLEN-1:0] ebs_regfile_data_o
 );
   logic stall;
@@ -447,7 +447,7 @@ module issue_read_operands
     assign raddr_pack = {issue_instr_i.result[4:0], issue_instr_i.rs2[4:0], issue_instr_i.rs1[4:0]};
   end else begin : gen_no_rs3
     assign raddr_pack = {issue_instr_i.rs2[4:0], issue_instr_i.rs1[4:0]};
-    assign raddr_pack_extended = {ebs_regfile_opts_i, raddr_pack};
+    assign raddr_pack_extended = {ebs_regfile_addr_i, raddr_pack};
     assign ebs_regfile_data_o = rdata_extended[CVA6Cfg.NrRgprPorts+4-1:2];
   end
 

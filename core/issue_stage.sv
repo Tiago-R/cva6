@@ -87,7 +87,7 @@ module issue_stage
     input  logic              [CVA6Cfg.NrCommitPorts-1:0] commit_ack_i,
 
     output logic stall_issue_o,  // Used in Performance Counters
-    input logic [3:0][4:0] ebs_regfile_opts_i,
+    input logic [3:0][4:0] ebs_regfile_addr_i,
     output logic [3:0][riscv::XLEN-1:0] ebs_regfile_data_o,
 
     //RVFI
@@ -207,7 +207,7 @@ module issue_stage
       .rs1_forwarding_o   (rs1_forwarding_xlen),
       .rs2_forwarding_o   (rs2_forwarding_xlen),
       .stall_issue_o      (stall_issue_o),
-      .ebs_regfile_opts_i (ebs_regfile_opts_i),
+      .ebs_regfile_addr_i (ebs_regfile_addr_i),
       .ebs_regfile_data_o (ebs_regfile_data_o),
       .*
   );
